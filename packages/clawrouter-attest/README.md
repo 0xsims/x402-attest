@@ -1,4 +1,4 @@
-# @rubric/clawrouter-attest
+# @rubric-protocol/clawrouter-attest
 
 Attest every call your agent makes through [ClawRouter](https://github.com/BlockRunAI/ClawRouter),
 so its routing decisions become independently checkable.
@@ -25,7 +25,7 @@ stronger claim out of it than anyone else.
 ### 1. Wrap the fetch (one line, no extra hop)
 
 ```ts
-import { withClawRouterAttestation } from '@rubric/clawrouter-attest';
+import { withClawRouterAttestation } from '@rubric-protocol/clawrouter-attest';
 
 const fetchAndPay = withClawRouterAttestation(myX402Fetch, {
   subjectId: 'agent-alpha',
@@ -46,7 +46,7 @@ assertions are real checks rather than `unknown`.
 ### 2. Attesting reverse proxy (when the client cannot change)
 
 ```ts
-import { createAttestingProxy } from '@rubric/clawrouter-attest';
+import { createAttestingProxy } from '@rubric-protocol/clawrouter-attest';
 
 const proxy = createAttestingProxy({
   listenPort: 8403,

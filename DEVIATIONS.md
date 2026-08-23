@@ -313,11 +313,11 @@ retrievable later, so without it the feature would be almost always unavailable.
 
 ## 14. Verify CLI ships from both packages
 
-**Spec:** shows `npx @rubric/x402-attest verify ./receipt.json`, and also lists
+**Spec:** shows `npx @rubric-protocol/x402-attest verify ./receipt.json`, and also lists
 `packages/verify-cli`.
 
-**What we do:** both. `@rubric/x402-attest` exposes the documented `x402-attest`
-bin; `@rubric/verify-cli` is a read-only package exposing `verify-receipt`.
+**What we do:** both. `@rubric-protocol/x402-attest` exposes the documented `x402-attest`
+bin; `@rubric-protocol/verify-cli` is a read-only package exposing `verify-receipt`.
 
 ## 15. Exit code for a root that does not match the anchored record
 

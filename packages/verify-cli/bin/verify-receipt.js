@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { runCli } from '@rubric/x402-attest/cli';
+import { runCli } from '@rubric-protocol/x402-attest/cli';
 
 runCli(process.argv.slice(2), undefined, undefined, 'verify-receipt')
   .then((code) => {

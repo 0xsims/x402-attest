@@ -23,7 +23,7 @@ packages/
 ## The one-line integration
 
 ```diff
-+ import { withAttestation } from '@rubric/x402-attest';
++ import { withAttestation } from '@rubric-protocol/x402-attest';
 +
 + const fetchAndPay = withAttestation(baseX402Fetch, {
 +   subjectId: 'agent-alpha',
@@ -40,7 +40,7 @@ wraps. Nothing else in your code changes.
 ### Full configuration
 
 ```ts
-import { createTap, withAttestation } from '@rubric/x402-attest';
+import { createTap, withAttestation } from '@rubric-protocol/x402-attest';
 
 // Optional but strongly recommended: see "What the tap is for" below.
 const tap = createTap();
@@ -324,7 +324,7 @@ aliases is what makes this work rather than silently observing nothing.
 ## Verification
 
 ```bash
-npx @rubric/x402-attest verify ./receipt.json   # exit 0 = valid, nonzero = tampered
+npx @rubric-protocol/x402-attest verify ./receipt.json   # exit 0 = valid, nonzero = tampered
 ```
 
 | exit | meaning |

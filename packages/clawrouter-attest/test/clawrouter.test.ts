@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { rmSync } from 'node:fs';
 import { createAttestingProxy, withClawRouterAttestation, CLAWROUTER_HEADERS, createRoutingObserver } from '../src/index.js';
-import { isAnchored, type AnyReceipt } from '@rubric/x402-attest';
+import { isAnchored, type AnyReceipt } from '@rubric-protocol/x402-attest';
 import { startMockSeller, type MockSeller } from '../../x402-attest/test/mocks/seller.js';
 import { startMockRubric, tmpWal, type MockRubric } from '../../x402-attest/test/mocks/rubric.js';
 import { createMockX402Fetch } from '../../x402-attest/test/mocks/x402client.js';

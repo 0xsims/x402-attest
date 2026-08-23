@@ -1,5 +1,5 @@
 {
-  "name": "@rubric/clawrouter-attest",
+  "name": "@rubric-protocol/clawrouter-attest",
   "version": "0.1.0",
   "description": "ClawRouter plugin: attest every proxied call, making the router's cost-savings claim independently verifiable.",
   "license": "MIT",
@@ -9,5 +9,5 @@
   "exports": { ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" } },
   "files": ["dist", "README.md"],
   "scripts": { "build": "tsc -b" },
-  "dependencies": { "@rubric/x402-attest": "0.1.0" }
+  "dependencies": { "@rubric-protocol/x402-attest": "0.1.0" }
 }

@@ -1,5 +1,5 @@
 {
-  "name": "@rubric/x402-attest",
+  "name": "@rubric-protocol/x402-attest",
   "version": "0.1.0",
   "description": "Drop-in attestation wrapper for x402 payment clients. Tamper-evident receipts for every paid call, verifiable by anyone.",
   "license": "MIT",
