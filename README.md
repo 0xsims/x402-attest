@@ -1,5 +1,16 @@
 # x402-attest
 
+[![CI](https://github.com/0xsims/x402-attest/actions/workflows/ci.yml/badge.svg)](https://github.com/0xsims/x402-attest/actions/workflows/ci.yml)
+
+<!--
+  The badge renders broken while this repo is private. GitHub's camo proxy fetches
+  README images anonymously, and the badge endpoint 404s to unauthenticated
+  requests on a private repo — verified 2026-08-23. Nothing is misconfigured; it
+  starts working the moment the repo goes public. Deliberately not added to
+  packages/x402-attest/README.md, which ships to npm, where it would be
+  permanently broken for everyone.
+-->
+
 **Tamper-evident receipts for agent-paid HTTP calls.**
 
 An AI agent that pays for HTTP resources over [x402](https://docs.x402.org) gets,
