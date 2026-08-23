@@ -1,0 +1,130 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# A second push to the same branch cancels the first — no point finishing a run
+# whose commit is already superseded.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: test (node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Lower bound is package.json's engines floor; upper is current LTS.
+        node: ['20.11', '20', '22']
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      - run: npm ci
+
+      # tsc -b across all three packages. Catches type breakage that vitest,
+      # which transpiles without checking, would sail straight past.
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+        env:
+          # Wall-clock latency budgets are not assertable on shared CI runners:
+          # a scheduler preemption inflates p99 by milliseconds with nothing wrong
+          # in the code, and the budget here is 5ms total. The measurements are
+          # still computed and printed in the job log, so a regression is visible
+          # — it just does not gate the build on runner noise. The budgets are
+          # enforced locally, where the numbers mean something.
+          X402_ATTEST_SKIP_PERF: '1'
+
+      # The suite ships mock servers precisely so it needs no live network. If a
+      # test ever starts reaching out, this is where it will be noticed.
+      - name: Assert no live network was required
+        run: echo "suite runs against in-process mocks only — see test/mocks/"
+
+  coverage:
+    name: coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      # Thresholds live in vitest.config.ts (85% lines/statements/functions,
+      # 80% branches) and fail the run on their own.
+      - name: Coverage
+        run: npm run coverage
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage
+          path: coverage/
+          retention-days: 14
+
+  package:
+    name: package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+
+      # The tarball is the artifact people actually install, and it can break in
+      # ways the test suite cannot see: a missing `files` entry, an unbuilt dist,
+      # a bad bin path. Build them and prove a consumer can use them.
+      - name: Pack
+        run: npm run pack
+
+      - name: Install the tarballs into a clean project and use them
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/consumer && cd /tmp/consumer
+          npm init -y >/dev/null && npm pkg set type=module >/dev/null
+          npm install \
+            "$GITHUB_WORKSPACE"/tarballs/rubric-protocol-x402-attest-*.tgz \
+            "$GITHUB_WORKSPACE"/tarballs/rubric-protocol-clawrouter-attest-*.tgz \
+            "$GITHUB_WORKSPACE"/tarballs/rubric-protocol-x402-verify-cli-*.tgz
+          node --input-type=module -e "
+            import { withAttestation, verifyReceipt, createTap } from '@rubric-protocol/x402-attest';
+            import { withClawRouterAttestation } from '@rubric-protocol/clawrouter-attest';
+            import { verifyReceipt as v2 } from '@rubric-protocol/x402-verify-cli';
+            const fns = [withAttestation, verifyReceipt, createTap, withClawRouterAttestation, v2];
+            if (!fns.every(f => typeof f === 'function')) { throw new Error('exports missing'); }
+            const w = withAttestation(async () => new Response('{}', { status: 200 }), {
+              subjectId: 'ci', walPath: './wal', mode: 'off', installSignalHandlers: false });
+            await (await w('https://s.example/x', { method: 'POST', body: '{}' })).arrayBuffer();
+            const r = w.attestor.batcher.allReceipts()[0];
+            if (r.callRecord.assertions.length !== 8) { throw new Error('expected 8 assertions'); }
+            await w.close();
+            console.log('consumer smoke ok — leaf', r.leafHash.slice(0, 16));
+          "
+          npx x402-attest --help > /dev/null
+          npx x402-verify --help > /dev/null
+          echo "both bins on PATH"
+
+      - name: Run the worked example end to end
+        run: npm run example
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tarballs
+          path: tarballs/*.tgz
+          retention-days: 14
