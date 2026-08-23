@@ -191,17 +191,23 @@ describe('end-to-end: paid call to verified receipt', () => {
       expect(receipt.verifyUrl).toContain('/v1/verify/');
 
       const result = await verifyReceipt(receipt, { fetchImpl: fetch });
-      expect(result.reason).toBe(
-        'receipt is valid: record hashes to its leaf, proof reaches the anchored root',
-      );
       expect(result.ok).toBe(true);
       expect(result.code).toBe(0);
       expect(result.checks).toEqual({
         leafHash: 'pass',
         proof: 'pass',
+        envelopeRoot: 'pass',
+        commitment: 'pass',
         anchored: 'pass',
-        rootMatch: 'pass',
       });
+      // Rubric never echoes the payload back, so the envelope-to-anchor link is
+      // matched by the commitment the receipt recorded, not recomputed here.
+      expect(result.binding).toBe('recorded');
+      expect(result.remote?.commitment).toBe(receipt.payloadCommitment);
+
+      // The receipt carries the payload that was actually submitted.
+      expect(receipt.envelope.root).toBe(receipt.root);
+      expect(receipt.envelope.leafCount).toBe(3);
     }
 
     // One attestation for three calls. That is the economics of the whole design.

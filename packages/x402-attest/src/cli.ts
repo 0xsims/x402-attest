@@ -107,10 +107,15 @@ function symbol(v: string): string {
 
 function render(io: CliIo, r: VerifyResult, label: string): void {
   io.out(`${r.ok ? 'VALID' : 'INVALID'}  ${label}`);
-  io.out(`  leaf hash   ${symbol(r.checks.leafHash)}  ${r.computed.leafHash}`);
-  io.out(`  proof       ${symbol(r.checks.proof)}${r.computed.root ? '    ' + r.computed.root : ''}`);
-  io.out(`  root match  ${symbol(r.checks.rootMatch)}`);
-  io.out(`  anchored    ${symbol(r.checks.anchored)}${r.remote?.status ? '  (' + r.remote.status + ')' : ''}`);
+  io.out(`  leaf hash      ${symbol(r.checks.leafHash)}  ${r.computed.leafHash}`);
+  io.out(`  proof          ${symbol(r.checks.proof)}${r.computed.root ? '    ' + r.computed.root : ''}`);
+  io.out(`  envelope root  ${symbol(r.checks.envelopeRoot)}`);
+  io.out(
+    `  commitment     ${symbol(r.checks.commitment)}` +
+      (r.binding && r.binding !== 'none' ? `  (${r.binding})` : ''),
+  );
+  io.out(`  anchored       ${symbol(r.checks.anchored)}${r.remote?.status ? '  (' + r.remote.status + ')' : ''}`);
+  if (r.remote?.mirrorNodeUrl) io.out(`  independent    ${r.remote.mirrorNodeUrl}`);
   io.out(`  ${r.reason}`);
 }
 

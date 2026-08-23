@@ -4,7 +4,7 @@ import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { withAttestation } from '../src/index.js';
-import { VERIFY_EXIT, findRoot, verifyReceipt } from '../src/verify.js';
+import { VERIFY_EXIT, readCommitment, verifyReceipt } from '../src/verify.js';
 import { parseArgs, parseReceiptFile, runCli } from '../src/cli.js';
 import { isAnchored, type FetchLike, type Receipt } from '../src/types.js';
 import { startMockRubric, tmpWal, type MockRubric } from './mocks/rubric.js';
@@ -167,13 +167,51 @@ describe('receipt verification', () => {
     );
   });
 
-  it('detects a root that is not the one Rubric anchored (exit 2)', async () => {
-    rubric.options.corruptRoot = true;
+  it('detects a receipt bound to a different payload than the node holds (exit 2)', async () => {
+    rubric.options.corruptCommitment = true;
     const [receipt] = await makeReceipt(1);
-    const r = await verifyReceipt(receipt!, { fetchImpl: fetch });
+    // The receipt records the commitment it was issued; the node holds another.
+    const tampered = { ...receipt!, payloadCommitment: 'a'.repeat(64) };
+    const r = await verifyReceipt(tampered, { fetchImpl: fetch });
     expect(r.code).toBe(VERIFY_EXIT.PROOF_MISMATCH);
-    expect(r.checks.rootMatch).toBe('fail');
-    expect(r.reason).toMatch(/does not contain root/);
+    expect(r.checks.commitment).toBe('fail');
+    expect(r.reason).toMatch(/bound to a different payload/);
+  });
+
+  it('detects a root that was never the one submitted (exit 2)', async () => {
+    const [receipt] = await makeReceipt(1);
+    // Envelope says one root, the proof proves another.
+    const swapped = {
+      ...receipt!,
+      envelope: { ...receipt!.envelope, root: 'b'.repeat(64) },
+    };
+    const r = await verifyReceipt(swapped, { fetchImpl: fetch });
+    expect(r.code).toBe(VERIFY_EXIT.PROOF_MISMATCH);
+    expect(r.checks.envelopeRoot).toBe('fail');
+    expect(r.reason).toMatch(/envelope names root/);
+  });
+
+  it('reports the binding as unverifiable when no commitment exists', async () => {
+    const [receipt] = await makeReceipt(1);
+    const { payloadCommitment: _dropped, ...noCommitment } = receipt!;
+    const r = await verifyReceipt(noCommitment as typeof receipt, { fetchImpl: fetch });
+    // The attestation is anchored and the receipt is internally sound, but
+    // nothing ties them together — that must not read as a clean pass.
+    expect(r.checks.commitment).toBe('unverifiable');
+    expect(r.binding).toBe('none');
+    expect(r.reason).toMatch(/no commitment available/);
+  });
+
+  it('upgrades to a recomputed binding when the derivation is supplied', async () => {
+    const [receipt] = await makeReceipt(1);
+    // Stands in for Rubric's real derivation, once confirmed.
+    const r = await verifyReceipt(receipt!, {
+      fetchImpl: fetch,
+      recomputeCommitment: () => receipt!.payloadCommitment!,
+    });
+    expect(r.ok).toBe(true);
+    expect(r.binding).toBe('recomputed');
+    expect(r.checks.commitment).toBe('pass');
   });
 
   it('reports a batch that has not reached the ledger yet (exit 3)', async () => {
@@ -185,7 +223,7 @@ describe('receipt verification', () => {
     // message says so rather than implying the receipt is forged.
     expect(r.checks.leafHash).toBe('pass');
     expect(r.checks.proof).toBe('pass');
-    expect(r.checks.rootMatch).toBe('pass');
+    expect(r.checks.commitment).toBe('pass');
     expect(r.reason).toMatch(/has not reached the ledger yet/);
   });
 
@@ -240,21 +278,26 @@ describe('receipt verification', () => {
     expect(r.reason).toMatch(/missing callRecord/);
   });
 
-  describe('findRoot', () => {
-    it('locates the root at any depth in the verifier response', () => {
-      const root = 'a'.repeat(64);
-      expect(findRoot({ attestation: { data: { root } } }, root)).toEqual({
-        found: true,
-        path: 'attestation.data.root',
-      });
-      expect(findRoot({ a: [{ b: { c: root } }] }, root).path).toBe('a[0].b.c');
-      expect(findRoot({ nope: 'x' }, root).found).toBe(false);
+  describe('readCommitment', () => {
+    it('reads the commitment from the shape the live node returns', () => {
+      expect(
+        readCommitment({ attestation: { payload: { payload_commitment: 'abc' } } }),
+      ).toBe('abc');
     });
 
-    it('does not loop forever on a cyclic response', () => {
-      const cyclic: Record<string, unknown> = { a: 1 };
-      cyclic['self'] = cyclic;
-      expect(findRoot(cyclic, 'b'.repeat(64)).found).toBe(false);
+    it('tolerates alternative spellings and nestings', () => {
+      expect(readCommitment({ attestation: { payload_commitment: 'x' } })).toBe('x');
+      expect(readCommitment({ attestation: { payloadCommitment: 'y' } })).toBe('y');
+      expect(readCommitment({ payloadCommitment: 'z' })).toBe('z');
+      expect(readCommitment({ payload: { payload_commitment: 'w' } })).toBe('w');
+    });
+
+    it('returns undefined rather than guessing when absent', () => {
+      // Degrading to `unverifiable` is correct; inventing a value would turn a
+      // reshaped response into a false accusation of tampering.
+      expect(readCommitment({ attestation: {} })).toBeUndefined();
+      expect(readCommitment(null)).toBeUndefined();
+      expect(readCommitment('nope')).toBeUndefined();
     });
   });
 });

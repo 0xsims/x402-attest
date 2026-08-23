@@ -100,14 +100,23 @@ const rubricServer = createServer(async (req, res) => {
     const id = decodeURIComponent(path.slice('/v1/verify/'.length));
     const record = anchored.get(id);
     if (!record) return json(200, { found: false, status: 'unknown' });
+    // Mirrors the live node: a commitment, not the payload.
     return json(200, {
       found: true,
       status: 'anchored',
       verified: true,
+      payloadHashMatch: true,
       source: 'warm-store',
-      sequenceNumber: 276123,
+      sequenceNumber: 291514,
       hcsExplorerUrl: 'https://hashscan.io/mainnet/topic/0.0.10416909',
-      attestation: { attestationId: id, algorithm: 'ML-DSA-65', data: record },
+      mirrorNodeUrl:
+        'https://mainnet-public.mirrornode.hedera.com/api/v1/topics/0.0.10416909/messages?sequencenumber=291514&limit=1',
+      attestation: {
+        attestation_id: id,
+        attestation_type: 'tiered',
+        algorithm: 'ML-DSA-65',
+        payload: { payload_commitment: record.commitment },
+      },
     });
   }
 
@@ -132,13 +141,17 @@ const rubricServer = createServer(async (req, res) => {
 
   const { data } = JSON.parse(body);
   const attestationId = randomUUID();
-  anchored.set(attestationId, data);
+  // The node keeps a commitment, never the plaintext payload — tiered payloads
+  // are encrypted at rest. This is the only handle /v1/verify gives back.
+  const commitment = createHash('sha3-256').update(JSON.stringify(data)).digest('hex');
+  anchored.set(attestationId, { commitment });
   return json(200, {
     success: true,
     paid: true,
     settled: true,
     settlement: { txHash: '0x' + 'cd'.repeat(32), network: 'base' },
     attestationId,
+    payloadCommitment: commitment,
     algorithm: 'ML-DSA-65',
     topic: '0.0.10416909',
     verifyUrl: `http://127.0.0.1:${rubricServer.address().port}/v1/verify/${attestationId}`,
@@ -279,7 +292,9 @@ for (const secret of ['confidential prompt text', 'confidential completion text'
  * ------------------------------------------------------------------ */
 console.log('\n=== 4. Third-party verification ===\n');
 const good = await verifyReceipt(receipt);
-console.log(`  genuine receipt -> exit ${good.code} (${good.ok ? 'VALID' : 'INVALID'}): ${good.reason}`);
+console.log(`  genuine receipt -> exit ${good.code} (${good.ok ? 'VALID' : 'INVALID'})`);
+console.log(`    ${good.reason}`);
+console.log(`    binding: ${good.binding}   checks: ${JSON.stringify(good.checks)}`);
 
 const tampered = structuredClone(receipt);
 tampered.callRecord.challenge.maxAmountRequired = '1';

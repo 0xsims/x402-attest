@@ -110,14 +110,18 @@ export class Batcher {
       for (const [callId, proof] of Object.entries(a.proofs ?? {})) {
         const leaf = byCallId.get(callId);
         if (!leaf) continue;
-        this.receipts.set(callId, {
+        const rebuilt: Receipt = {
           callRecord: leaf.record,
           leafHash: leaf.leafHash,
           proof,
           root: a.root,
           attestationId: a.attestationId,
           verifyUrl: a.verifyUrl,
-        });
+          envelope: a.envelope,
+        };
+        if (a.payloadCommitment) rebuilt.payloadCommitment = a.payloadCommitment;
+        if (a.payloadHash) rebuilt.payloadHash = a.payloadHash;
+        this.receipts.set(callId, rebuilt);
       }
     }
   }
@@ -131,6 +135,7 @@ export class Batcher {
         root: null,
         attestationId: null,
         verifyUrl: null,
+        envelope: null,
       });
     }
   }
@@ -243,7 +248,10 @@ export class Batcher {
         at: this.opts.now(),
         leafCount: batch.leaves.length,
         proofs: batch.proofs,
+        envelope: batch.envelope,
       };
+      if (result.payloadCommitment) entry.payloadCommitment = result.payloadCommitment;
+      if (result.payloadHash) entry.payloadHash = result.payloadHash;
       // Durable before it is observable: the anchor line is fsynced before any
       // receipt claims to be anchored, so a crash cannot leave a caller holding an
       // attestationId that the WAL has no record of.
@@ -258,7 +266,10 @@ export class Batcher {
           root: batch.root,
           attestationId: result.attestationId,
           verifyUrl: result.verifyUrl,
+          envelope: batch.envelope,
         };
+        if (result.payloadCommitment) receipt.payloadCommitment = result.payloadCommitment;
+        if (result.payloadHash) receipt.payloadHash = result.payloadHash;
         this.receipts.set(leaf.callId, receipt);
         this.safeEmit(receipt);
       }

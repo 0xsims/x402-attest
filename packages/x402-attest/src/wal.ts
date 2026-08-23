@@ -11,7 +11,7 @@ import {
 } from 'node:fs';
 import { join } from 'node:path';
 import { sha256Jcs } from './hash.js';
-import type { CallRecord, ProofStep, WalOptions } from './types.js';
+import type { BatchEnvelope, CallRecord, ProofStep, WalOptions } from './types.js';
 
 /**
  * Append-only write-ahead log.
@@ -51,6 +51,16 @@ export type AnchorEntry = {
   leafCount: number;
   /** Inclusion proof per leaf, keyed by callId. */
   proofs: Record<string, ProofStep[]>;
+  /**
+   * The payload submitted for this batch, and the commitment Rubric issued for it.
+   *
+   * Persisted because Rubric never gives the payload back — a process that
+   * restarts without these cannot reconstruct a verifiable receipt for leaves it
+   * already anchored, only a receipt that says it was anchored.
+   */
+  envelope: BatchEnvelope;
+  payloadCommitment?: string;
+  payloadHash?: string;
 };
 
 export type WalReplay = {

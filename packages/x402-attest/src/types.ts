@@ -141,6 +141,31 @@ export type CallRecord = {
 
 export type ProofStep = { hash: string; side: 'left' | 'right' };
 
+/**
+ * The exact payload submitted to Rubric for a batch.
+ *
+ * Carried in every receipt because Rubric does not give it back. Tiered payloads
+ * are encrypted at rest and `/v1/verify` returns only a commitment to them, so a
+ * verifier that does not hold the envelope has nothing to bind the root to.
+ */
+export type BatchEnvelope = {
+  schemaVersion: typeof BATCH_SCHEMA_VERSION;
+  leafType: 'DATA_RECORD';
+  root: string;
+  leafCount: number;
+  firstCallId: string;
+  lastCallId: string;
+  timeRange: { from: string; to: string };
+  subjectId: string;
+  policyId?: string;
+  merkle: {
+    hash: string;
+    leafPrefix: string;
+    nodePrefix: string;
+    oddNode: string;
+  };
+};
+
 export type Receipt = {
   callRecord: CallRecord;
   leafHash: string;
@@ -148,6 +173,15 @@ export type Receipt = {
   root: string;
   attestationId: string;
   verifyUrl: string;
+  /** The batch payload this leaf's root was submitted in. */
+  envelope: BatchEnvelope;
+  /**
+   * Commitment Rubric issued for `envelope` at submission, echoed by the public
+   * verify endpoint. This is what binds a receipt to the anchored attestation.
+   */
+  payloadCommitment?: string;
+  /** Hash Rubric reported for the submitted payload, when it supplies one. */
+  payloadHash?: string;
 };
 
 /** A receipt that exists locally but whose batch has not been anchored yet. */
@@ -158,6 +192,9 @@ export type PendingReceipt = {
   root: null;
   attestationId: null;
   verifyUrl: null;
+  envelope: null;
+  payloadCommitment?: undefined;
+  payloadHash?: undefined;
 };
 
 export type AnyReceipt = Receipt | PendingReceipt;

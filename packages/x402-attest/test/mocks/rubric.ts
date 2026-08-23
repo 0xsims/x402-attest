@@ -1,6 +1,6 @@
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 
 /**
  * Mock Rubric node.
@@ -25,8 +25,11 @@ export type MockRubricOptions = {
   verifyStatus?: string;
   /** Price of a keyless attestation, atomic USDC. */
   attestPrice?: string;
-  /** Corrupt the stored root so verification detects a mismatch. */
-  corruptRoot?: boolean;
+  /**
+   * Issue a commitment that does not correspond to the submitted payload, so
+   * verification detects that a receipt is bound to a different attestation.
+   */
+  corruptCommitment?: boolean;
 };
 
 export type MockRubric = {
@@ -35,16 +38,24 @@ export type MockRubric = {
   options: MockRubricOptions;
   /** Everything received, byte for byte, for the no-plaintext test. */
   requests: { path: string; headers: Record<string, string | string[] | undefined>; body: string }[];
-  stored: Map<string, unknown>;
+  stored: Map<string, StoredAttestation>;
   attemptCount: number;
   close: () => Promise<void>;
 };
 
 const RUBRIC_PAYEE = '0x9999999999999999999999999999999999999999';
 
+/** What the node retains: a commitment, never the plaintext payload. */
+export type StoredAttestation = {
+  commitment: string;
+  payloadHash: string;
+  /** Kept only so tests can assert on what was sent; the real node encrypts this. */
+  submitted: unknown;
+};
+
 export async function startMockRubric(options: MockRubricOptions = {}): Promise<MockRubric> {
   const requests: MockRubric['requests'] = [];
-  const stored = new Map<string, unknown>();
+  const stored = new Map<string, StoredAttestation>();
   const state = { attempts: 0 };
 
   const server = createServer((req, res) => {
@@ -64,21 +75,62 @@ export async function startMockRubric(options: MockRubricOptions = {}): Promise<
       if (path.startsWith('/v1/verify/')) {
         const id = decodeURIComponent(path.slice('/v1/verify/'.length));
         const record = stored.get(id);
-        if (!record) return json(200, { found: false, status: 'unknown' });
+        if (!record) {
+          return json(200, {
+            found: false,
+            id,
+            scannedPages: 30,
+            note:
+              "Not found in this node's stores, in any peer node, or on HCS. " +
+              'Tiered attestations are Merkle-batched and are not published to HCS as ' +
+              'individual messages, so a mirror-node scan cannot resolve one by id; ' +
+              "they resolve from the serving node's store.",
+          });
+        }
+
+        // Mirrors the shape observed against the live mainnet node on 2026-08-23.
+        //
+        // The submitted payload is NOT echoed back. Tiered payloads are encrypted at
+        // rest and the endpoint exposes only `payload.payload_commitment` and
+        // `payload_hash`. An earlier version of this mock returned `data: <submitted
+        // payload>`, which is what the verifier was written against — the mock
+        // encoded the assumption and then validated it, so a verifier that could
+        // never work against the real API passed every test.
+        //
+        // The commitment is echoed exactly as issued at submission time. How Rubric
+        // derives it is deliberately NOT modelled here: that is unconfirmed, and
+        // guessing it in a mock is the same mistake a second time.
         return json(200, {
           found: true,
           status: options.verifyStatus ?? 'anchored',
-          sequenceNumber: 276123,
-          hcsExplorerUrl: `https://hashscan.io/mainnet/topic/0.0.10416909`,
-          mirrorNodeUrl: 'https://mainnet.mirrornode.hedera.com',
           verified: true,
+          payloadHashMatch: true,
+          aggregateBinding: 'strong',
           source: 'warm-store',
+          sequenceNumber: 291514,
+          hcsTopicId: '0.0.10416909',
+          hcsSequence: 291514,
+          hcsExplorerUrl: 'https://hashscan.io/mainnet/topic/0.0.10416909',
+          mirrorNodeUrl:
+            'https://mainnet-public.mirrornode.hedera.com/api/v1/topics/0.0.10416909/messages?sequencenumber=291514&limit=1',
+          note:
+            'Attestation is ML-DSA-65 signed and anchored on Hedera HCS. Verify ' +
+            'independently via HashScan or Mirror Node — no Rubric involvement required.',
+          reason: 'tiered: leaf re-derived, inclusion proven, envelope signature valid',
           attestation: {
-            attestationId: id,
-            algorithm: 'ML-DSA-65',
-            publicKey: 'mock-public-key',
-            signature: 'mock-signature',
-            data: record,
+            attestation_id: id,
+            attestation_type: 'tiered',
+            rubric_version: '1.0',
+            issuer_node_region: 'us',
+            issued_at: new Date(0).toISOString(),
+            payload: { payload_commitment: record.commitment },
+            payload_hash: record.payloadHash,
+            merkle_proof: ['e810aa20f40fd5a0ee3bb4b1781c2a3159e657771dbbde9482195eff62a933a8'],
+            merkle_proof_directions: ['R'],
+            batch_root: '069d3474e45511ecc48e08d4e7d1060253c06dd856bac5d12d1cbe44234209a4',
+            batch_size: 2,
+            publicKey: 'mock-ml-dsa-65-public-key',
+            signature: 'mock-ml-dsa-65-signature',
           },
         });
       }
@@ -130,10 +182,16 @@ export async function startMockRubric(options: MockRubricOptions = {}): Promise<
       }
 
       const attestationId = randomUUID();
-      const record = options.corruptRoot
-        ? { ...(parsed.data as object), root: 'f'.repeat(64) }
-        : parsed.data;
-      stored.set(attestationId, record);
+
+      // The commitment issued at submission and echoed by /v1/verify. Its real
+      // derivation is unconfirmed, so the mock treats it as opaque: tests must
+      // bind to the value the server issued, never recompute it themselves.
+      const canonical = JSON.stringify(parsed.data);
+      const commitment = options.corruptCommitment
+        ? 'f'.repeat(64)
+        : createHash('sha3-256').update(canonical).digest('hex');
+      const payloadHash = createHash('sha256').update(canonical).digest('hex');
+      stored.set(attestationId, { commitment, payloadHash, submitted: parsed.data });
 
       const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 
@@ -146,6 +204,8 @@ export async function startMockRubric(options: MockRubricOptions = {}): Promise<
             settled: true,
             settlement: { txHash: '0x' + 'ab'.repeat(32), network: 'base' },
             attestationId,
+            payloadCommitment: commitment,
+            payloadHash,
             algorithm: 'ML-DSA-65',
             topic: '0.0.10416909',
             verifyUrl: `${base}/v1/verify/${attestationId}`,
@@ -161,7 +221,8 @@ export async function startMockRubric(options: MockRubricOptions = {}): Promise<
       return json(200, {
         attestationId,
         payloadKey: 'a'.repeat(64),
-        payloadCommitment: 'b'.repeat(64),
+        payloadCommitment: commitment,
+        payloadHash,
         status: 'buffered',
       });
     })();

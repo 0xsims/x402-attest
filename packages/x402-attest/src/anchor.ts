@@ -1,5 +1,5 @@
 import { MERKLE_PARAMS } from './merkle.js';
-import { BATCH_SCHEMA_VERSION, type FetchLike } from './types.js';
+import { BATCH_SCHEMA_VERSION, type BatchEnvelope, type FetchLike } from './types.js';
 
 /**
  * Rubric anchoring client.
@@ -11,28 +11,37 @@ import { BATCH_SCHEMA_VERSION, type FetchLike } from './types.js';
  */
 
 /** The envelope submitted once per batch. Contains hashes and counts, never content. */
-export type BatchEnvelope = {
-  schemaVersion: typeof BATCH_SCHEMA_VERSION;
-  leafType: 'DATA_RECORD';
-  root: string;
-  leafCount: number;
-  firstCallId: string;
-  lastCallId: string;
-  timeRange: { from: string; to: string };
-  subjectId: string;
-  policyId?: string;
-  merkle: typeof MERKLE_PARAMS;
-};
+export type { BatchEnvelope };
 
 export type AnchorResult = {
   attestationId: string;
   verifyUrl: string;
   /** Returned once by the tiered path. A credential — never placed in a receipt. */
   payloadKey?: string;
+  /**
+   * Commitment Rubric issued for the submitted payload.
+   *
+   * Not a secret, unlike `payloadKey`, and it is the only handle the public verify
+   * endpoint gives back for the payload — so it goes into every receipt.
+   */
+  payloadCommitment?: string;
+  payloadHash?: string;
   /** Path actually taken, recorded so a receipt can be traced to how it was paid. */
   via: 'tiered' | 'direct' | 'x402';
   raw: unknown;
 };
+
+/** Read the commitment fields, tolerating both spellings seen in the wild. */
+function commitmentOf(body: unknown): { payloadCommitment?: string; payloadHash?: string } {
+  if (!body || typeof body !== 'object') return {};
+  const o = body as Record<string, unknown>;
+  const out: { payloadCommitment?: string; payloadHash?: string } = {};
+  const c = o['payloadCommitment'] ?? o['payload_commitment'];
+  const h = o['payloadHash'] ?? o['payload_hash'];
+  if (typeof c === 'string' && c.length > 0) out.payloadCommitment = c;
+  if (typeof h === 'string' && h.length > 0) out.payloadHash = h;
+  return out;
+}
 
 export class AnchorError extends Error {
   readonly status?: number;
@@ -202,6 +211,7 @@ export class AnchorClient {
     return {
       attestationId,
       verifyUrl: verifyUrlFor(this.opts.baseUrl, attestationId),
+      ...commitmentOf(parsed),
       via: this.opts.endpoint,
       raw: parsed,
     };
@@ -279,7 +289,7 @@ export class AnchorClient {
         ? (o['verifyUrl'] as string)
         : verifyUrlFor(this.opts.baseUrl, attestationId);
 
-    return { attestationId, verifyUrl, via: 'x402', raw: parsed };
+    return { attestationId, verifyUrl, ...commitmentOf(parsed), via: 'x402', raw: parsed };
   }
 }
 

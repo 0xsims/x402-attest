@@ -167,9 +167,25 @@ asked for `claude-sonnet-4.6` and the router served `gemini-2.5-flash`.
   ],
   "root": "b8a44427b72fce0105bcd2e11c0e8bcad1e3c902df5faedba10816e5355519fb",
   "attestationId": "1645f6ca-da6d-4001-819f-698965e70fb6",
-  "verifyUrl": "https://rubric-protocol.com/v1/verify/1645f6ca-da6d-4001-819f-698965e70fb6"
+  "verifyUrl": "https://rubric-protocol.com/v1/verify/1645f6ca-da6d-4001-819f-698965e70fb6",
+  "envelope": {
+    "schemaVersion": "rubric.x402-attest/v1",
+    "leafType": "DATA_RECORD",
+    "root": "b8a44427b72fce0105bcd2e11c0e8bcad1e3c902df5faedba10816e5355519fb",
+    "leafCount": 3,
+    "firstCallId": "01a02fe5-bc2b-7000-bc45-8726e1d8daeb",
+    "lastCallId": "01a02fe5-bc2d-7000-9f11-3c0a4d7e2b90",
+    "timeRange": { "from": "2026-08-23T18:33:00.203Z", "to": "2026-08-23T18:33:00.913Z" },
+    "subjectId": "agent-alpha",
+    "policyId": "trading-desk-v2",
+    "merkle": { "hash": "sha256", "leafPrefix": "0x00", "nodePrefix": "0x01", "oddNode": "promote" }
+  },
+  "payloadCommitment": "1654a32e8ca47dd30c4b23daf60ecf46b6caeed76c00b126be904ac04ddcc188"
 }
 ```
+
+`envelope` is the exact payload submitted to Rubric, carried because Rubric does
+not give it back. Without it a verifier has nothing to bind the root to.
 
 Note what is *not* in there: no prompt, no completion, no query string, no payment
 authorization header, no `set-cookie` the seller sent. Only digests and the checks.
@@ -211,6 +227,12 @@ section before you cite a receipt to anyone.
   can not call the wrapper. This library makes the calls it sees undeniable; it
   cannot make omissions detectable. Batch `leafCount` and `firstCallId`/`lastCallId`
   make *gaps within an anchored batch* visible, and nothing more.
+- **That the root was the one submitted — not yet fully, anyway.** The last link
+  from the batch envelope to the anchored commitment is matched by recorded value,
+  not recomputed, because Rubric's commitment derivation is unconfirmed. A receipt
+  whose root and commitment were forged together would pass. Everything upstream
+  of that link is cryptographically checked, and `verifyReceipt` tells you which
+  kind of binding it achieved rather than glossing over the difference.
 - **That the model served was any good, or correctly priced.**
   `model_matches_request` compares a requested string to a served string. It does
   not evaluate the output or the fairness of the price.
@@ -297,12 +319,34 @@ Flags: `--offline` (hash and proof only, no network), `--json`, `--quiet`,
 `--verify-url <url>`, `--timeout <ms>`. Input may be one receipt, a JSON array, or
 JSONL; with several, the exit code is the worst result.
 
-Three steps, and the first two are pure local computation:
+Four checks, and the first three are pure local computation:
 
 1. `sha256(jcs(callRecord))` must equal `leafHash`.
 2. Walking `proof` from that leaf must reproduce `root`.
-3. `GET /v1/verify/{attestationId}` — public, no key — must report `anchored` and
-   carry the same root.
+3. That root must be the one named in `envelope` — the exact payload submitted to
+   Rubric, which the receipt carries.
+4. `GET /v1/verify/{attestationId}` — public, no key — must report `anchored` and
+   hold the same `payload_commitment` the receipt recorded.
+
+**On step 4, and why it is not a root comparison.** Verified against the live
+mainnet node: Rubric never echoes the submitted payload back. Tiered payloads are
+encrypted at rest and the endpoint returns only a commitment to them, so there is
+no root in the response to compare against. The receipt therefore carries the
+envelope and the commitment, and the chain runs
+
+```
+callRecord → leafHash → proof → root → envelope.root → commitment → anchored
+```
+
+Every link is checked locally except the last. Binding the envelope to the
+commitment requires knowing how Rubric derives it, which is **not yet confirmed**,
+so `verifyReceipt` reports `binding: 'recorded'` — it matched the value the receipt
+recorded against the value the node holds. That catches a receipt pointed at the
+wrong attestation. It does not catch a receipt whose commitment and root were
+fabricated together. Supply `recomputeCommitment` once the derivation is known and
+the result upgrades to `binding: 'recomputed'`, which is fully trustless. If no
+commitment exists on either side the check reports `unverifiable`, never a silent
+pass.
 
 Programmatically:
 

@@ -58,25 +58,68 @@ ability to recover the submitted payload from Rubric's warm store later; putting
 in receipts would ship a credential to whoever receives the audit file. A separate
 restricted file is the only option that does neither.
 
-## 4. Verify-endpoint response shape
+## 4. `/v1/verify` does not return the submitted payload — verification is commitment-based
 
 **Spec:** "fetches `GET /v1/verify/{attestationId}` ... and confirms the anchored
 root matches and status is `anchored`."
 
-**Live docs:** the response is
-`{ found, status, sequenceNumber, hcsExplorerUrl, mirrorNodeUrl, verified, source, attestation }`,
-where `status` is one of `signed-pending-flush | signed-pending-hcs |
-flushed-pending-hcs | anchored`. The docs do not pin where inside `attestation`
-the submitted payload sits.
+**Verified against the live mainnet node on 2026-08-23** (public GET, no key,
+attestation `e65dc29e-b029-4f27-9c97-d2e2631107d0`):
 
-**What we do:** check `found`, locate our root by scanning the response for the
-exact 64-hex digest (recording the path where it was found), then require
-`status === 'anchored'`. A root that is absent or different fails as a proof
-mismatch even when the record is still buffering — tampering and impatience are
-different findings and get different exit codes.
+```json
+"attestation": {
+  "payload":      { "payload_commitment": "1654a32e…" },
+  "payload_hash": "89bc5ff5…",
+  "batch_root":   "069d3474…",
+  "merkle_proof": ["e810aa20…"], "merkle_proof_directions": ["R"]
+},
+"status": "anchored", "verified": true, "payloadHashMatch": true,
+"sequenceNumber": 291514, "aggregateBinding": "strong"
+```
 
-**Why:** hard-coding one JSON path would produce false "tampered" verdicts the
-moment Rubric reshapes its response. A 64-hex digest match is not a coincidence.
+The submitted payload is **never echoed back**. Tiered payloads are encrypted at
+rest and the endpoint exposes only a commitment to them; `batch_root` is Rubric's
+own tier-1 flush root, unrelated to ours. Confirming "the anchored root matches",
+as the spec describes, is not possible against this API.
+
+**What we do:** the receipt now carries the `envelope` — the exact payload
+submitted — plus the `payloadCommitment` Rubric issued for it. Verification runs:
+
+```
+callRecord → leafHash → proof → root → envelope.root → commitment → anchored
+```
+
+Steps 1, 2 and the envelope-root check are pure local computation. The last link
+compares the receipt's recorded commitment against the one the node holds.
+
+**The honest limitation.** How Rubric derives `payload_commitment` is unconfirmed
+(the docs call it a "SHA3-256 binding"), so the verifier cannot yet recompute it
+from the envelope. Until it can, that link is reported as
+`binding: 'recorded'` rather than `'recomputed'`, and the distinction is surfaced
+in `VerifyResult` and printed by the CLI. `recorded` detects a receipt pointed at
+the wrong attestation; it does not detect a receipt whose commitment and root were
+fabricated together. Pass `recomputeCommitment` to close the gap and the result
+upgrades automatically. When no commitment is available on either side the check
+reports `unverifiable` rather than passing silently.
+
+**How this was missed until now.** The mock returned `data: <submitted payload>`
+in its verify response — it encoded the assumption and was then used to validate
+it, so a verifier that could never work against the real API passed every test.
+The mock now mirrors the observed live shape and deliberately does not model the
+commitment derivation, since guessing it would be the same mistake twice.
+
+**Also confirmed, and reassuring:** the on-ledger tier-2 anchor (HCS topic
+`0.0.10416909`, seq 291514, read from the Hedera mirror node) declares
+`canonicalization: JCS/RFC8785` and a batch level of
+`SHA-256 / RFC6962 domainSeparation / merkleOdd: "promote"` — independently the
+same construction this library implements.
+
+**One operational consequence:** per the 404 note, tiered attestations "resolve
+from the serving node's store" and cannot be found by a mirror-node scan. Verifying
+against a different federation node than the issuing one returns `found: false`.
+The keyless path already prefers the server-supplied `verifyUrl`; the keyed path
+builds it from `rubricBaseUrl` and will point at the wrong node in a multi-region
+deployment. Not yet fixed.
 
 ## 5. x402 header names: two generations, both supported
 

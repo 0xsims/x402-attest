@@ -11,11 +11,24 @@ import type { FetchLike, Receipt } from './types.js';
  * pure local computation; step 3 is a single unauthenticated request.
  *
  *   1. sha256(jcs(callRecord)) must equal the claimed leafHash.
- *   2. Walking the proof from that leaf must reproduce the claimed root.
- *   3. GET /v1/verify/{attestationId} must report `anchored` and must carry the
- *      same root.
+ *   2. Walking the proof from that leaf must reproduce the claimed root, and that
+ *      root must be the one named in the batch envelope.
+ *   3. GET /v1/verify/{attestationId} must report `anchored`, and the commitment
+ *      it holds must equal the one recorded in the receipt.
  *
- * Any one of those failing means the receipt does not say what it claims to say.
+ * Step 3 is NOT a root comparison, though an earlier version of this file assumed
+ * it was. Checked against the live mainnet node on 2026-08-23: tiered payloads are
+ * encrypted at rest and `/v1/verify` returns only `payload.payload_commitment` and
+ * `payload_hash` — the submitted payload, and therefore our root, is never echoed
+ * back. Scanning the response for the root fails on every genuine receipt.
+ *
+ * What that costs, stated plainly: the chain runs
+ *   callRecord -> leafHash -> proof -> root -> envelope -> commitment -> anchor.
+ * Every link is checked locally except the last. Binding envelope to commitment
+ * requires knowing how Rubric derives it, which is unconfirmed; until it is, the
+ * verifier compares the commitment the receipt recorded against the one the node
+ * holds, and reports that link as `recorded` rather than `recomputed`. Supply
+ * `recomputeCommitment` to close it, and the result upgrades automatically.
  */
 
 export const VERIFY_EXIT = {
@@ -35,11 +48,33 @@ export type VerifyResult = {
   checks: {
     leafHash: 'pass' | 'fail';
     proof: 'pass' | 'fail' | 'skipped';
+    /** Does the proven root match the root named in the batch envelope? */
+    envelopeRoot: 'pass' | 'fail' | 'skipped';
+    /** Does the node hold the commitment this receipt recorded? */
+    commitment: 'pass' | 'fail' | 'skipped' | 'unverifiable';
     anchored: 'pass' | 'fail' | 'skipped';
-    rootMatch: 'pass' | 'fail' | 'skipped';
   };
-  computed: { leafHash: string; root?: string };
-  remote?: { status?: string; found?: boolean; verified?: boolean; source?: string };
+  /**
+   * How the envelope was bound to the anchored commitment.
+   *
+   * `recomputed` — derived from the envelope here; fully trustless.
+   * `recorded`   — the receipt's stored commitment matched the node's. Detects a
+   *                receipt pointed at the wrong attestation, but not one whose
+   *                recorded commitment and root were fabricated together.
+   * `none`       — no commitment available on either side.
+   */
+  binding?: 'recomputed' | 'recorded' | 'none';
+  computed: { leafHash: string; root?: string; commitment?: string };
+  remote?: {
+    status?: string;
+    found?: boolean;
+    verified?: boolean;
+    source?: string;
+    commitment?: string;
+    payloadHashMatch?: boolean;
+    sequenceNumber?: number;
+    mirrorNodeUrl?: string;
+  };
 };
 
 export type VerifyOptions = {
@@ -49,40 +84,43 @@ export type VerifyOptions = {
   /** Override the URL in the receipt; useful against a staging node. */
   verifyUrl?: string;
   timeoutMs?: number;
+  /**
+   * Derive the commitment from the submitted envelope.
+   *
+   * Supply this once Rubric's derivation is confirmed and step 3 becomes fully
+   * trustless. Without it the commitment is compared by recorded value.
+   */
+  recomputeCommitment?: (envelope: unknown) => string;
 };
 
 /**
- * Locate our root anywhere in the verification response.
+ * Read the commitment the node holds for this attestation.
  *
- * Rubric's public verify endpoint returns the attestation record it holds, and the
- * exact nesting of the submitted payload under `attestation` is not pinned by the
- * published docs. Rather than hard-code one path and produce false negatives when
- * it moves, we check the documented shapes first and then scan. A root is a
- * 64-char hex digest, so a scan match is not a coincidence.
+ * Shape observed on the live node: `attestation.payload.payload_commitment`, with
+ * `attestation.payload_hash` alongside. Both spellings and a couple of plausible
+ * nestings are accepted so a response reshape degrades to `unverifiable` rather
+ * than to a false accusation of tampering.
  */
-export function findRoot(body: unknown, root: string): { found: boolean; path?: string } {
-  const seen = new Set<unknown>();
-  const walk = (node: unknown, path: string): string | undefined => {
-    if (node === null || node === undefined) return undefined;
-    if (typeof node === 'string') return node === root ? path : undefined;
-    if (typeof node !== 'object') return undefined;
-    if (seen.has(node)) return undefined;
-    seen.add(node);
-    if (Array.isArray(node)) {
-      for (let i = 0; i < node.length; i++) {
-        const hit = walk(node[i], `${path}[${i}]`);
-        if (hit) return hit;
-      }
-      return undefined;
-    }
-    for (const [k, v] of Object.entries(node as Record<string, unknown>)) {
-      const hit = walk(v, path ? `${path}.${k}` : k);
-      if (hit) return hit;
-    }
-    return undefined;
-  };
-  const path = walk(body, '');
-  return path ? { found: true, path } : { found: false };
+export function readCommitment(body: unknown): string | undefined {
+  if (!body || typeof body !== 'object') return undefined;
+  const o = body as Record<string, unknown>;
+  const att = (o['attestation'] ?? o) as Record<string, unknown>;
+  const payload = att['payload'];
+  const candidates: unknown[] = [
+    payload && typeof payload === 'object'
+      ? (payload as Record<string, unknown>)['payload_commitment']
+      : undefined,
+    payload && typeof payload === 'object'
+      ? (payload as Record<string, unknown>)['payloadCommitment']
+      : undefined,
+    att['payload_commitment'],
+    att['payloadCommitment'],
+    o['payloadCommitment'],
+  ];
+  for (const c of candidates) {
+    if (typeof c === 'string' && c.length > 0) return c;
+  }
+  return undefined;
 }
 
 function readStatus(body: unknown): string | undefined {
@@ -103,8 +141,9 @@ export async function verifyReceipt(
   const checks: VerifyResult['checks'] = {
     leafHash: 'fail',
     proof: 'skipped',
+    envelopeRoot: 'skipped',
+    commitment: 'skipped',
     anchored: 'skipped',
-    rootMatch: 'skipped',
   };
 
   if (!receipt || typeof receipt !== 'object' || !receipt.callRecord) {
@@ -179,13 +218,42 @@ export async function verifyReceipt(
   }
   checks.proof = 'pass';
 
+  // 2b. The proven root must be the one actually submitted to Rubric. Without
+  //     this, a receipt could carry a valid leaf and proof over a root that was
+  //     never anchored at all.
+  const envelope = receipt.envelope as { root?: string } | undefined;
+  if (envelope && typeof envelope.root === 'string') {
+    if (envelope.root !== computedRoot) {
+      checks.envelopeRoot = 'fail';
+      return {
+        ok: false,
+        code: VERIFY_EXIT.PROOF_MISMATCH,
+        reason: `proof reaches ${computedRoot} but the submitted envelope names root ${envelope.root}`,
+        checks,
+        computed: { leafHash: computedLeaf, root: computedRoot },
+      };
+    }
+    checks.envelopeRoot = 'pass';
+  }
+
+  // The commitment we expect the node to be holding.
+  const expectedCommitment = options.recomputeCommitment
+    ? options.recomputeCommitment(receipt.envelope)
+    : receipt.payloadCommitment;
+  const binding: VerifyResult['binding'] = options.recomputeCommitment
+    ? 'recomputed'
+    : receipt.payloadCommitment
+      ? 'recorded'
+      : 'none';
+
   if (options.offline) {
     return {
       ok: true,
       code: VERIFY_EXIT.VALID,
       reason: 'hash and proof verified; anchor check skipped (offline)',
       checks,
-      computed: { leafHash: computedLeaf, root: computedRoot },
+      binding,
+      computed: { leafHash: computedLeaf, root: computedRoot, commitment: expectedCommitment },
     };
   }
 
@@ -243,11 +311,17 @@ export async function verifyReceipt(
   }
 
   const o = (body ?? {}) as Record<string, unknown>;
-  const remote = {
+  const remote: NonNullable<VerifyResult['remote']> = {
     status: readStatus(body),
     found: typeof o['found'] === 'boolean' ? (o['found'] as boolean) : undefined,
     verified: typeof o['verified'] === 'boolean' ? (o['verified'] as boolean) : undefined,
     source: typeof o['source'] === 'string' ? (o['source'] as string) : undefined,
+    commitment: readCommitment(body),
+    payloadHashMatch:
+      typeof o['payloadHashMatch'] === 'boolean' ? (o['payloadHashMatch'] as boolean) : undefined,
+    sequenceNumber:
+      typeof o['sequenceNumber'] === 'number' ? (o['sequenceNumber'] as number) : undefined,
+    mirrorNodeUrl: typeof o['mirrorNodeUrl'] === 'string' ? (o['mirrorNodeUrl'] as string) : undefined,
   };
 
   if (remote.found === false) {
@@ -257,26 +331,37 @@ export async function verifyReceipt(
       code: VERIFY_EXIT.NOT_ANCHORED,
       reason: `attestation ${receipt.attestationId} is not known to the verifier`,
       checks,
+      binding,
       computed: { leafHash: computedLeaf, root: computedRoot },
       remote,
     };
   }
 
-  // Root check runs before the anchor-state check: a record that is still
-  // buffering but already carries the wrong root is tampering, not impatience.
-  const hit = findRoot(body, receipt.root);
-  if (!hit.found) {
-    checks.rootMatch = 'fail';
-    return {
-      ok: false,
-      code: VERIFY_EXIT.PROOF_MISMATCH,
-      reason: `the anchored attestation does not contain root ${receipt.root}`,
-      checks,
-      computed: { leafHash: computedLeaf, root: computedRoot },
-      remote,
-    };
+  // Commitment check runs before the anchor-state check: a record still buffering
+  // but already bound to the wrong payload is tampering, not impatience.
+  const remoteCommitment = remote.commitment;
+  if (expectedCommitment && remoteCommitment) {
+    if (expectedCommitment !== remoteCommitment) {
+      checks.commitment = 'fail';
+      return {
+        ok: false,
+        code: VERIFY_EXIT.PROOF_MISMATCH,
+        reason:
+          `attestation ${receipt.attestationId} is bound to a different payload: ` +
+          `node holds ${remoteCommitment}, receipt expects ${expectedCommitment}`,
+        checks,
+        binding,
+        computed: { leafHash: computedLeaf, root: computedRoot, commitment: expectedCommitment },
+        remote,
+      };
+    }
+    checks.commitment = 'pass';
+  } else {
+    // Neither side offered a commitment. The receipt is internally sound and the
+    // attestation exists, but nothing ties one to the other — say so rather than
+    // let a bare `anchored` imply a binding that was never checked.
+    checks.commitment = 'unverifiable';
   }
-  checks.rootMatch = 'pass';
 
   if (remote.status !== 'anchored') {
     checks.anchored = 'fail';
@@ -287,18 +372,29 @@ export async function verifyReceipt(
         `attestation ${receipt.attestationId} is in state "${remote.status ?? 'unknown'}", not "anchored". ` +
         'The hash and proof are valid; the batch has not reached the ledger yet.',
       checks,
-      computed: { leafHash: computedLeaf, root: computedRoot },
+      binding,
+      computed: { leafHash: computedLeaf, root: computedRoot, commitment: expectedCommitment },
       remote,
     };
   }
   checks.anchored = 'pass';
 
+  const bindingNote =
+    binding === 'recomputed'
+      ? 'commitment recomputed from the submitted envelope'
+      : binding === 'recorded'
+        ? 'commitment matched by recorded value'
+        : 'no commitment available to bind the payload';
+
   return {
     ok: true,
     code: VERIFY_EXIT.VALID,
-    reason: 'receipt is valid: record hashes to its leaf, proof reaches the anchored root',
+    reason:
+      'receipt is valid: record hashes to its leaf, proof reaches the submitted root, ' +
+      `and the attestation is anchored (${bindingNote})`,
     checks,
-    computed: { leafHash: computedLeaf, root: computedRoot },
+    binding,
+    computed: { leafHash: computedLeaf, root: computedRoot, commitment: expectedCommitment },
     remote,
   };
 }
