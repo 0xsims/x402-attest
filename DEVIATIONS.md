@@ -317,7 +317,7 @@ retrievable later, so without it the feature would be almost always unavailable.
 `packages/verify-cli`.
 
 **What we do:** both. `@rubric-protocol/x402-attest` exposes the documented `x402-attest`
-bin; `@rubric-protocol/verify-cli` is a read-only package exposing `verify-receipt`.
+bin; `@rubric-protocol/x402-verify-cli` is a read-only package exposing `x402-verify`.
 
 ## 15. Exit code for a root that does not match the anchored record
 

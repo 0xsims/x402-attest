@@ -1,13 +1,23 @@
 {
-  "name": "@rubric-protocol/verify-cli",
+  "name": "@rubric-protocol/x402-verify-cli",
   "version": "0.1.0",
   "description": "Standalone verifier for x402 attestation receipts. No API key, no network account, no trust in the agent that produced the receipt.",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "bin": { "verify-receipt": "./bin/verify-receipt.js" },
-  "files": ["dist", "bin", "README.md"],
-  "scripts": { "build": "tsc -b" },
-  "dependencies": { "@rubric-protocol/x402-attest": "0.1.0" }
+  "bin": {
+    "x402-verify": "./bin/x402-verify.js"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "@rubric-protocol/x402-attest": "0.1.0"
+  }
 }

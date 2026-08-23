@@ -1,9 +1,9 @@
-# @rubric-protocol/verify-cli
+# @rubric-protocol/x402-verify-cli
 
 Standalone verifier for x402 attestation receipts.
 
 ```bash
-npx @rubric-protocol/verify-cli verify ./receipt.json
+npx @rubric-protocol/x402-verify-cli verify ./receipt.json
 echo $?   # 0 = valid
 ```
 
@@ -54,7 +54,7 @@ Steps 1 and 2 run with `--offline` and need nothing but the file.
 ## Library use
 
 ```ts
-import { verifyReceipt, VERIFY_EXIT } from '@rubric-protocol/verify-cli';
+import { verifyReceipt, VERIFY_EXIT } from '@rubric-protocol/x402-verify-cli';
 
 const result = await verifyReceipt(receipt);
 if (!result.ok) console.error(result.code, result.reason);

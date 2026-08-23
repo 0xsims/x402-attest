@@ -10,7 +10,7 @@ import type { Receipt } from './types.js';
  * 4 fetch failed.
  */
 
-/** Both `x402-attest` and `verify-receipt` share this implementation. */
+/** Both `x402-attest` and `x402-verify` share this implementation. */
 const usage = (bin: string): string => `${bin} — verify Rubric attestation receipts
 
 Usage:
