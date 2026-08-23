@@ -155,6 +155,25 @@ so a challenge saying `base` satisfies a policy written as `eip155:8453`.
 degrade half the assertions to `unknown`, which is the difference between a useful
 receipt and a decorative one.
 
+**Settled by testing the real client (2026-08-23).** `x402-fetch@1.2.0` — the
+shipping reference client — uses the spec's format, not the docs':
+
+| | docs.x402.org | x402-fetch@1.2.0 |
+|---|---|---|
+| payment header | `PAYMENT-SIGNATURE` | `X-PAYMENT` |
+| requirements location | `PAYMENT-REQUIRED` header | 402 response body, `accepts[]` |
+| amount field | unspecified | `maxAmountRequired`, required by its zod schema |
+| network id | CAIP-2 | `base` (from `ChainIdToNetwork[8453]`) |
+
+So the build spec described the deployed reality and the live documentation
+describes something else — possibly a future generation, possibly aspirational.
+Supporting both was the right call, and the alias table is what lets a policy
+written in CAIP-2 match a challenge that says `base`.
+
+The tap installs underneath it cleanly: `wrapFetchWithPayment(fetch, wallet)`
+takes the transport as its first argument and calls it. Covered by
+`test/real-client.test.ts`, which also asserts the without-tap degradation.
+
 ## 6. `challenge.resource` has its query string stripped
 
 **Spec:** "the 402 as served. NOT sensitive — keep in clear."

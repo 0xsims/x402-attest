@@ -43,5 +43,8 @@
     "rubric",
     "agent-payments"
   ],
-  "dependencies": {}
+  "devDependencies": {
+    "viem": "^2.55.19",
+    "x402-fetch": "^1.2.0"
+  }
 }

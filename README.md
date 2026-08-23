@@ -76,7 +76,7 @@ fetchAndPay.exportReceipts({ format: 'csv' });
 
 ```bash
 npm install
-npm test          # 198 tests, no network
+npm test          # 208 tests, no live network
 npm run example   # full keyless demo against in-process mocks
 ```
 
@@ -298,6 +298,26 @@ const fetchAndPay = withAttestation(baseX402Fetch, { subjectId, tap });
 
 It is optional. Without it you still get valid, verifiable receipts — they just
 assert less, and they say so.
+
+**Verified against the real client.** `x402-fetch@1.2.0` takes `fetch` as its
+first argument and calls it, so the tap installs cleanly underneath. The test
+suite runs the full handshake through it with a real viem wallet signing a real
+EIP-3009 authorization, and asserts both halves of the claim: with the tap the
+four payment-side checks return real verdicts, and without it — same client, same
+seller — they degrade to `unknown` with `challenge` and `payment` absent. No
+optimistic passes either way.
+
+Two things that test pinned down, which the published docs get wrong:
+
+| | docs.x402.org says | `x402-fetch@1.2.0` actually does |
+|---|---|---|
+| payment header | `PAYMENT-SIGNATURE` | **`X-PAYMENT`** |
+| requirements | in a `PAYMENT-REQUIRED` header | in the **402 body**, as `accepts[]` |
+| amount field | unspecified | **`maxAmountRequired`** (required) |
+| network | CAIP-2 `eip155:8453` | **`base`** |
+
+Reading both header generations, both amount spellings, and normalizing network
+aliases is what makes this work rather than silently observing nothing.
 
 ---
 
@@ -545,11 +565,14 @@ This library proves what was observed and what was checked. Nothing more.
 ## Tests
 
 ```bash
-npm test        # 198 tests
+npm test        # 208 tests
 npm run coverage
 ```
 
-Coverage on `packages/x402-attest`: **95% statements, 88% branches, 97% functions.**
+Coverage on `packages/x402-attest`: **95% statements, 89% branches, 97% functions.**
+
+The suite depends on `x402-fetch` and `viem` as devDependencies for the real-client
+integration test. The shipped package still has **zero runtime dependencies**.
 
 Ships a mock x402 seller, a mock facilitator/payment client, and a mock Rubric node.
 No live network in CI.
