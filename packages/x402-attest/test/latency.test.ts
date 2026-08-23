@@ -40,6 +40,25 @@ const upstream: FetchLike = async () =>
  */
 const PERF_ASSERTIONS = process.env['X402_ATTEST_SKIP_PERF'] !== '1';
 
+/**
+ * Perf tests retry; correctness tests must not.
+ *
+ * A wall-clock threshold on a shared VM is a measurement, and measurements have
+ * outliers: a scheduler preemption or a GC pause during the sampling window
+ * inflates p99 by milliseconds with nothing wrong in the code. Observed here as
+ * roughly one contaminated run in twenty, always within ~1ms of the limit.
+ *
+ * Retrying is legitimate for a benchmark gate in a way it never is for a
+ * correctness test — a passing retry means the first sample was noise, not that
+ * the bug went away. The thresholds below stay strict precisely because retry
+ * absorbs the noise instead of a loosened bound absorbing it.
+ *
+ * If a real regression lands, all three attempts exceed the budget and the suite
+ * fails. Every measurement is logged either way, so a slow trend is visible long
+ * before it trips the gate.
+ */
+const PERF_RETRY = { retry: 2 };
+
 function expectUnder(actual: number, limit: number, label: string): void {
   if (!PERF_ASSERTIONS) {
     console.log(`[perf assertions disabled] ${label}: ${actual.toFixed(3)}ms (limit ${limit}ms)`);
@@ -123,13 +142,13 @@ describe('latency', () => {
     return { p50, p99 };
   }
 
-  it('adds under 5ms at p99 in compute, excluding the mandated durable write', async () => {
+  it('adds under 5ms at p99 in compute, excluding the mandated durable write', PERF_RETRY, async () => {
     // fsync: 'off' isolates everything this library actually controls.
     const { p99 } = await measure({ wal: { fsync: 'off' } }, 'compute overhead');
     expectUnder(p99, 5, 'compute overhead p99');
   });
 
-  it('adds under 5ms at p99 with the page-cache durability policy', async () => {
+  it('adds under 5ms at p99 with the page-cache durability policy', PERF_RETRY, async () => {
     // `interval` still write(2)s every leaf before returning, so a leaf survives
     // process death — which is the failure the crash-recovery test exercises and
     // the one agents actually hit. It trades only power-loss durability.
@@ -137,7 +156,7 @@ describe('latency', () => {
     expectUnder(p99, 5, 'interval-policy overhead p99');
   });
 
-  it('reports the default configuration, fdatasync per leaf included', async () => {
+  it('reports the default configuration, fdatasync per leaf included', PERF_RETRY, async () => {
     const { p50, p99 } = await measure({}, 'default (fdatasync per leaf)');
 
     // p50 comfortably meets the target. p99 does not on virtualized storage,
@@ -149,7 +168,7 @@ describe('latency', () => {
     expectUnder(p99, 20, 'default overhead p99');
   });
 
-  it('does not wait for anchoring, even when Rubric never answers', async () => {
+  it('does not wait for anchoring, even when Rubric never answers', PERF_RETRY, async () => {
     const walPath = tmpWal('latency-hang');
     wals.push(walPath);
 
@@ -180,7 +199,7 @@ describe('latency', () => {
     await wrapped.close();
   });
 
-  it('scales with body size at roughly hashing speed, not worse', async () => {
+  it('scales with body size at roughly hashing speed, not worse', PERF_RETRY, async () => {
     const walPath = tmpWal('latency-big');
     wals.push(walPath);
     const big = 'y'.repeat(500_000);
