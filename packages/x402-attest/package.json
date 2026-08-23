@@ -1,0 +1,47 @@
+{
+  "name": "@rubric/x402-attest",
+  "version": "0.1.0",
+  "description": "Drop-in attestation wrapper for x402 payment clients. Tamper-evident receipts for every paid call, verifiable by anyone.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=20.11.0"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./verify": {
+      "types": "./dist/verify.d.ts",
+      "default": "./dist/verify.js"
+    },
+    "./cli": {
+      "types": "./dist/cli.d.ts",
+      "default": "./dist/cli.js"
+    }
+  },
+  "bin": {
+    "x402-attest": "./bin/x402-attest.js"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "keywords": [
+    "x402",
+    "attestation",
+    "audit",
+    "receipts",
+    "merkle",
+    "rubric",
+    "agent-payments"
+  ],
+  "dependencies": {}
+}

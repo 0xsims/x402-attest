@@ -1,0 +1,411 @@
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { execFile } from 'node:child_process';
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
+import { promisify } from 'node:util';
+import { withAttestation } from '../src/index.js';
+import { VERIFY_EXIT, findRoot, verifyReceipt } from '../src/verify.js';
+import { parseArgs, parseReceiptFile, runCli } from '../src/cli.js';
+import { isAnchored, type FetchLike, type Receipt } from '../src/types.js';
+import { startMockRubric, tmpWal, type MockRubric } from './mocks/rubric.js';
+
+const execFileAsync = promisify(execFile);
+const PKG = resolve(__dirname, '..');
+const BIN = join(PKG, 'bin', 'x402-attest.js');
+
+/**
+ * Verification is the product.
+ *
+ * Every one of these tests answers the same question from a different angle: can
+ * a third party who trusts nobody — not the agent, not the seller, not Rubric —
+ * tell a real receipt from a doctored one?
+ */
+describe('receipt verification', () => {
+  let rubric: MockRubric;
+  let walPath: string;
+  let dir: string;
+
+  beforeEach(async () => {
+    rubric = await startMockRubric();
+    walPath = tmpWal('verify');
+    dir = tmpWal('verify-out');
+    mkdirSync(dir, { recursive: true });
+  });
+
+  afterEach(async () => {
+    await rubric.close();
+    rmSync(walPath, { recursive: true, force: true });
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  /** Produce a genuine, anchored receipt through the real pipeline. */
+  async function makeReceipt(count = 4): Promise<Receipt[]> {
+    const upstream: FetchLike = async () =>
+      new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    const wrapped = withAttestation(upstream, {
+      rubricApiKey: 'test-key',
+      subjectId: 'agent-alpha',
+      sessionId: 'verify-session',
+      walPath,
+      rubricBaseUrl: rubric.url,
+      installSignalHandlers: false,
+    });
+    for (let i = 0; i < count; i++) {
+      const r = await wrapped(`https://seller.example/${i}`, { method: 'POST', body: '{}' });
+      await r.arrayBuffer();
+    }
+    await wrapped.flush();
+    const out = wrapped.attestor.batcher.allReceipts().filter(isAnchored);
+    await wrapped.close();
+    return out;
+  }
+
+  it('accepts a genuine receipt (exit 0)', async () => {
+    for (const receipt of await makeReceipt()) {
+      const r = await verifyReceipt(receipt, { fetchImpl: fetch });
+      expect(r.ok).toBe(true);
+      expect(r.code).toBe(VERIFY_EXIT.VALID);
+      expect(r.remote?.status).toBe('anchored');
+    }
+  });
+
+  it('detects a single mutated byte in the call record (exit 1)', async () => {
+    const [receipt] = await makeReceipt(1);
+    const tampered: Receipt = structuredClone(receipt!);
+    // Change one character of the host. The record no longer hashes to its leaf.
+    tampered.callRecord.request.host = tampered.callRecord.request.host.replace(/.$/, 'X');
+
+    const r = await verifyReceipt(tampered, { fetchImpl: fetch });
+    expect(r.ok).toBe(false);
+    expect(r.code).toBe(VERIFY_EXIT.HASH_MISMATCH);
+    expect(r.checks.leafHash).toBe('fail');
+    expect(r.reason).toMatch(/leaf hash mismatch/);
+  });
+
+  it('detects tampering in any field, including the assertions', async () => {
+    const [receipt] = await makeReceipt(1);
+    const cases: [string, (r: Receipt) => void][] = [
+      ['outcome', (r) => (r.callRecord.outcome = 'timeout')],
+      ['response.status', (r) => (r.callRecord.response.status = 500)],
+      ['assertion result', (r) => (r.callRecord.assertions[0]!.result = 'pass')],
+      ['durationMs', (r) => (r.callRecord.durationMs += 1000)],
+      ['subjectId', (r) => (r.callRecord.subjectId = 'someone-else')],
+      ['request.bodyHash', (r) => (r.callRecord.request.bodyHash = 'f'.repeat(64))],
+      ['callId', (r) => (r.callRecord.callId = '018f0000-0000-7000-8000-00000000ffff')],
+      ['added field', (r) => ((r.callRecord as Record<string, unknown>)['extra'] = 1)],
+      ['removed field', (r) => delete (r.callRecord as Partial<Receipt['callRecord']>).sessionId],
+    ];
+
+    for (const [label, mutate] of cases) {
+      const t: Receipt = structuredClone(receipt!);
+      mutate(t);
+      // Guard the test itself: a mutation that changed nothing would make this
+      // suite pass for the wrong reason.
+      expect(JSON.stringify(t.callRecord), `${label} was a no-op`).not.toBe(
+        JSON.stringify(receipt!.callRecord),
+      );
+      const r = await verifyReceipt(t, { fetchImpl: fetch });
+      expect(r.code, `tampering with ${label} was not detected`).toBe(
+        VERIFY_EXIT.HASH_MISMATCH,
+      );
+    }
+  });
+
+  it('is insensitive to key order, because the hash is over canonical JSON', async () => {
+    const [receipt] = await makeReceipt(1);
+
+    // Rebuild every object in the record with its keys in reverse order. Same
+    // data, different serialized bytes — which is exactly the case JCS exists to
+    // make hash-identical, and the reason a plain JSON.stringify hash would break
+    // whenever a record crossed a language or library boundary.
+    const reverseKeys = (v: unknown): unknown => {
+      if (Array.isArray(v)) return v.map(reverseKeys);
+      if (v && typeof v === 'object') {
+        const out: Record<string, unknown> = {};
+        for (const k of Object.keys(v as object).reverse()) {
+          out[k] = reverseKeys((v as Record<string, unknown>)[k]);
+        }
+        return out;
+      }
+      return v;
+    };
+
+    const reordered = { ...receipt!, callRecord: reverseKeys(receipt!.callRecord) } as Receipt;
+    expect(JSON.stringify(reordered.callRecord)).not.toBe(JSON.stringify(receipt!.callRecord));
+
+    const r = await verifyReceipt(reordered, { fetchImpl: fetch });
+    expect(r.ok).toBe(true);
+  });
+
+  it('detects a swapped or forged inclusion proof (exit 2)', async () => {
+    const receipts = await makeReceipt(4);
+    // Give leaf 0 the proof that belongs to leaf 1.
+    const swapped: Receipt = { ...receipts[0]!, proof: receipts[1]!.proof };
+    const r = await verifyReceipt(swapped, { fetchImpl: fetch });
+    expect(r.code).toBe(VERIFY_EXIT.PROOF_MISMATCH);
+    expect(r.checks.proof).toBe('fail');
+
+    const emptied: Receipt = { ...receipts[0]!, proof: [] };
+    expect((await verifyReceipt(emptied, { fetchImpl: fetch })).code).toBe(
+      VERIFY_EXIT.PROOF_MISMATCH,
+    );
+
+    const malformed: Receipt = {
+      ...receipts[0]!,
+      proof: [{ hash: 'not-a-hash', side: 'left' }],
+    };
+    expect((await verifyReceipt(malformed, { fetchImpl: fetch })).code).toBe(
+      VERIFY_EXIT.PROOF_MISMATCH,
+    );
+
+    const badRoot: Receipt = { ...receipts[0]!, root: 'zz' };
+    expect((await verifyReceipt(badRoot, { fetchImpl: fetch })).code).toBe(
+      VERIFY_EXIT.PROOF_MISMATCH,
+    );
+  });
+
+  it('detects a root that is not the one Rubric anchored (exit 2)', async () => {
+    rubric.options.corruptRoot = true;
+    const [receipt] = await makeReceipt(1);
+    const r = await verifyReceipt(receipt!, { fetchImpl: fetch });
+    expect(r.code).toBe(VERIFY_EXIT.PROOF_MISMATCH);
+    expect(r.checks.rootMatch).toBe('fail');
+    expect(r.reason).toMatch(/does not contain root/);
+  });
+
+  it('reports a batch that has not reached the ledger yet (exit 3)', async () => {
+    rubric.options.verifyStatus = 'signed-pending-flush';
+    const [receipt] = await makeReceipt(1);
+    const r = await verifyReceipt(receipt!, { fetchImpl: fetch });
+    expect(r.code).toBe(VERIFY_EXIT.NOT_ANCHORED);
+    // Hash and proof are fine; only the anchor state is not there yet, and the
+    // message says so rather than implying the receipt is forged.
+    expect(r.checks.leafHash).toBe('pass');
+    expect(r.checks.proof).toBe('pass');
+    expect(r.checks.rootMatch).toBe('pass');
+    expect(r.reason).toMatch(/has not reached the ledger yet/);
+  });
+
+  it('reports an unknown attestation as not anchored (exit 3)', async () => {
+    const [receipt] = await makeReceipt(1);
+    const unknown: Receipt = {
+      ...receipt!,
+      verifyUrl: `${rubric.url}/v1/verify/does-not-exist`,
+    };
+    const r = await verifyReceipt(unknown, { fetchImpl: fetch });
+    expect(r.code).toBe(VERIFY_EXIT.NOT_ANCHORED);
+    expect(r.reason).toMatch(/not known to the verifier/);
+  });
+
+  it('reports an unreachable verifier as a fetch failure (exit 4)', async () => {
+    const [receipt] = await makeReceipt(1);
+    const dead: Receipt = { ...receipt!, verifyUrl: 'http://127.0.0.1:1/v1/verify/x' };
+    const r = await verifyReceipt(dead, { fetchImpl: fetch });
+    expect(r.code).toBe(VERIFY_EXIT.FETCH_FAILED);
+    // Crucially NOT reported as invalid: unreachable is not the same as forged.
+    expect(r.checks.leafHash).toBe('pass');
+    expect(r.checks.proof).toBe('pass');
+  });
+
+  it('distinguishes an HTTP error from an unreachable host, both exit 4', async () => {
+    const [receipt] = await makeReceipt(1);
+    const erroring: FetchLike = async () => new Response('nope', { status: 500 });
+    const r = await verifyReceipt(receipt!, { fetchImpl: erroring });
+    expect(r.code).toBe(VERIFY_EXIT.FETCH_FAILED);
+    expect(r.reason).toMatch(/HTTP 500/);
+  });
+
+  it('verifies hash and proof offline, with no network at all', async () => {
+    const [receipt] = await makeReceipt(1);
+    const r = await verifyReceipt(receipt!, { offline: true });
+    expect(r.ok).toBe(true);
+    expect(r.checks.anchored).toBe('skipped');
+    expect(r.reason).toMatch(/offline/);
+  });
+
+  it('needs no API key: the verify request carries no credentials', async () => {
+    const [receipt] = await makeReceipt(1);
+    await verifyReceipt(receipt!, { fetchImpl: fetch });
+    const verifyReq = rubric.requests.find((r) => r.path.startsWith('/v1/verify/'))!;
+    expect(verifyReq.headers['x-api-key']).toBeUndefined();
+    expect(verifyReq.headers['authorization']).toBeUndefined();
+  });
+
+  it('rejects a receipt with no call record', async () => {
+    const r = await verifyReceipt({} as Receipt, { offline: true });
+    expect(r.code).toBe(VERIFY_EXIT.HASH_MISMATCH);
+    expect(r.reason).toMatch(/missing callRecord/);
+  });
+
+  describe('findRoot', () => {
+    it('locates the root at any depth in the verifier response', () => {
+      const root = 'a'.repeat(64);
+      expect(findRoot({ attestation: { data: { root } } }, root)).toEqual({
+        found: true,
+        path: 'attestation.data.root',
+      });
+      expect(findRoot({ a: [{ b: { c: root } }] }, root).path).toBe('a[0].b.c');
+      expect(findRoot({ nope: 'x' }, root).found).toBe(false);
+    });
+
+    it('does not loop forever on a cyclic response', () => {
+      const cyclic: Record<string, unknown> = { a: 1 };
+      cyclic['self'] = cyclic;
+      expect(findRoot(cyclic, 'b'.repeat(64)).found).toBe(false);
+    });
+  });
+});
+
+describe('verify CLI', () => {
+  let rubric: MockRubric;
+  let walPath: string;
+  let dir: string;
+  const out: string[] = [];
+  const err: string[] = [];
+  const io = { out: (s: string) => out.push(s), err: (s: string) => err.push(s) };
+
+  beforeEach(async () => {
+    rubric = await startMockRubric();
+    walPath = tmpWal('cli');
+    dir = tmpWal('cli-out');
+    mkdirSync(dir, { recursive: true });
+    out.length = 0;
+    err.length = 0;
+  });
+
+  afterEach(async () => {
+    await rubric.close();
+    rmSync(walPath, { recursive: true, force: true });
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  async function writeReceipts(count: number): Promise<{ receipts: Receipt[]; path: string }> {
+    const wrapped = withAttestation(async () => new Response('{}', { status: 200 }), {
+      rubricApiKey: 'test-key',
+      subjectId: 'agent-alpha',
+      walPath,
+      rubricBaseUrl: rubric.url,
+      installSignalHandlers: false,
+    });
+    for (let i = 0; i < count; i++) {
+      await (await wrapped(`https://seller.example/${i}`, { method: 'POST', body: '{}' })).arrayBuffer();
+    }
+    await wrapped.flush();
+    const receipts = wrapped.attestor.batcher.allReceipts().filter(isAnchored);
+    await wrapped.close();
+
+    const path = join(dir, 'receipt.json');
+    writeFileSync(path, JSON.stringify(receipts[0], null, 2));
+    return { receipts, path };
+  }
+
+  it('exits 0 on a valid receipt', async () => {
+    const { path } = await writeReceipts(1);
+    expect(await runCli(['verify', path], io)).toBe(0);
+    expect(out.join('\n')).toContain('VALID');
+  });
+
+  it('exits nonzero when one byte of the call record is mutated', async () => {
+    const { receipts } = await writeReceipts(1);
+    const tampered = structuredClone(receipts[0]!);
+    tampered.callRecord.request.path = '/tampered';
+    const path = join(dir, 'tampered.json');
+    writeFileSync(path, JSON.stringify(tampered));
+
+    const code = await runCli(['verify', path], io);
+    expect(code).not.toBe(0);
+    expect(code).toBe(1);
+    expect(out.join('\n')).toContain('INVALID');
+  });
+
+  it('runs the whole thing as a real subprocess and sets the exit code', async () => {
+    const { receipts } = await writeReceipts(1);
+
+    const goodPath = join(dir, 'good.json');
+    writeFileSync(goodPath, JSON.stringify(receipts[0]));
+    const ok = await execFileAsync(process.execPath, [BIN, 'verify', goodPath]);
+    expect(ok.stdout).toContain('VALID');
+
+    const tampered = structuredClone(receipts[0]!);
+    tampered.callRecord.response.status = 999;
+    const badPath = join(dir, 'bad.json');
+    writeFileSync(badPath, JSON.stringify(tampered));
+
+    await expect(
+      execFileAsync(process.execPath, [BIN, 'verify', badPath]),
+    ).rejects.toMatchObject({ code: 1 });
+  });
+
+  it('reports the worst result across a multi-receipt file', async () => {
+    const { receipts } = await writeReceipts(3);
+    const mixed = structuredClone(receipts);
+    mixed[2]!.callRecord.subjectId = 'forged';
+
+    const jsonlPath = join(dir, 'batch.jsonl');
+    writeFileSync(jsonlPath, mixed.map((r) => JSON.stringify(r)).join('\n') + '\n');
+    expect(await runCli(['verify', jsonlPath], io)).toBe(1);
+
+    const arrayPath = join(dir, 'batch.json');
+    writeFileSync(arrayPath, JSON.stringify(receipts));
+    expect(await runCli(['verify', arrayPath], io)).toBe(0);
+  });
+
+  it('supports --offline, --json and --quiet', async () => {
+    const { path } = await writeReceipts(1);
+
+    expect(await runCli(['verify', path, '--offline'], io)).toBe(0);
+
+    out.length = 0;
+    expect(await runCli(['verify', path, '--json'], io)).toBe(0);
+    const parsed = JSON.parse(out.join('\n'));
+    expect(parsed.ok).toBe(true);
+    expect(parsed.checks.proof).toBe('pass');
+
+    out.length = 0;
+    expect(await runCli(['verify', path, '--quiet'], io)).toBe(0);
+    expect(out).toHaveLength(0);
+  });
+
+  it('honours --verify-url and --timeout', async () => {
+    const { receipts } = await writeReceipts(1);
+    const path = join(dir, 'r.json');
+    writeFileSync(path, JSON.stringify(receipts[0]));
+
+    const url = `${rubric.url}/v1/verify/${receipts[0]!.attestationId}`;
+    expect(await runCli(['verify', path, '--verify-url', url, '--timeout', '5000'], io)).toBe(0);
+    expect(await runCli([`verify`, path, `--verify-url=${url}`, `--timeout=5000`], io)).toBe(0);
+  });
+
+  it('prints usage and exits 4 on a bad invocation', async () => {
+    expect(await runCli(['--help'], io)).toBe(0);
+    expect(out.join('\n')).toContain('Usage:');
+
+    expect(await runCli([], io)).toBe(4);
+    expect(await runCli(['frobnicate', 'x'], io)).toBe(4);
+    expect(await runCli(['verify'], io)).toBe(4);
+    expect(await runCli(['verify', '/no/such/file.json'], io)).toBe(4);
+    expect(err.join('\n')).toMatch(/cannot read/);
+  });
+
+  it('parses receipt files as JSON, arrays or JSONL', () => {
+    expect(parseReceiptFile('{"a":1}')).toEqual([{ a: 1 }]);
+    expect(parseReceiptFile('[{"a":1},{"b":2}]')).toEqual([{ a: 1 }, { b: 2 }]);
+    expect(parseReceiptFile('{"a":1}\n{"b":2}\n')).toEqual([{ a: 1 }, { b: 2 }]);
+    expect(() => parseReceiptFile('   ')).toThrow(/empty/);
+    expect(() => parseReceiptFile('{"a":1}\nnot json')).toThrow(/line 2/);
+  });
+
+  it('parses arguments', () => {
+    const a = parseArgs(['verify', 'f.json', '--offline', '--json', '--quiet']);
+    expect(a).toMatchObject({
+      command: 'verify',
+      file: 'f.json',
+      offline: true,
+      json: true,
+      quiet: true,
+    });
+  });
+});
