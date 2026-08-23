@@ -1,3 +1,5 @@
+import { computeCommitment } from './anchor.js';
+import { jcs } from './jcs.js';
 import { sha256Jcs } from './hash.js';
 import { computeRootFromProof } from './merkle.js';
 import type { FetchLike, Receipt } from './types.js';
@@ -237,14 +239,48 @@ export async function verifyReceipt(
   }
 
   // The commitment we expect the node to be holding.
-  const expectedCommitment = options.recomputeCommitment
-    ? options.recomputeCommitment(receipt.envelope)
-    : receipt.payloadCommitment;
-  const binding: VerifyResult['binding'] = options.recomputeCommitment
-    ? 'recomputed'
-    : receipt.payloadCommitment
-      ? 'recorded'
-      : 'none';
+  //
+  // Preferred path: recompute it from the envelope and the opening salt, which
+  // needs nothing from Rubric and nothing secret. Rubric derives
+  //   commitment = SHA-256(salt + RFC8785(payload))
+  // where salt is a one-way function of the payload key, so a receipt carrying
+  // the salt is fully verifiable while the decryption key stays sealed.
+  let expectedCommitment: string | undefined;
+  let binding: VerifyResult['binding'];
+
+  if (options.recomputeCommitment) {
+    expectedCommitment = options.recomputeCommitment(receipt.envelope);
+    binding = 'recomputed';
+  } else if (receipt.commitmentSalt && receipt.envelope) {
+    expectedCommitment = computeCommitment(receipt.commitmentSalt, jcs(receipt.envelope));
+    binding = 'recomputed';
+  } else if (receipt.payloadCommitment) {
+    expectedCommitment = receipt.payloadCommitment;
+    binding = 'recorded';
+  } else {
+    binding = 'none';
+  }
+
+  // A recomputed commitment that disagrees with the one the receipt recorded means
+  // the envelope has been altered since anchoring — catch it before any network
+  // call, and report it as tampering rather than as a mismatch with the node.
+  if (
+    binding === 'recomputed' &&
+    receipt.payloadCommitment &&
+    expectedCommitment !== receipt.payloadCommitment
+  ) {
+    checks.commitment = 'fail';
+    return {
+      ok: false,
+      code: VERIFY_EXIT.PROOF_MISMATCH,
+      reason:
+        `the envelope does not open its commitment: recomputes to ${expectedCommitment}, ` +
+        `receipt records ${receipt.payloadCommitment}`,
+      checks,
+      binding,
+      computed: { leafHash: computedLeaf, root: computedRoot, commitment: expectedCommitment },
+    };
+  }
 
   if (options.offline) {
     return {
@@ -381,7 +417,7 @@ export async function verifyReceipt(
 
   const bindingNote =
     binding === 'recomputed'
-      ? 'commitment recomputed from the submitted envelope'
+      ? 'commitment recomputed from the envelope and its opening salt'
       : binding === 'recorded'
         ? 'commitment matched by recorded value'
         : 'no commitment available to bind the payload';

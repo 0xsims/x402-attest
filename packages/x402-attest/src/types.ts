@@ -182,6 +182,15 @@ export type Receipt = {
   payloadCommitment?: string;
   /** Hash Rubric reported for the submitted payload, when it supplies one. */
   payloadHash?: string;
+  /**
+   * Opening salt for `payloadCommitment`, one-way derived from the payload key.
+   *
+   * Publishing this is what makes a receipt independently verifiable: anyone can
+   * recompute SHA-256(salt + jcs(envelope)) and compare it to the commitment the
+   * public verify endpoint holds. The AES key it was derived from is never in a
+   * receipt — the salt discloses the opening, not the key.
+   */
+  commitmentSalt?: string;
 };
 
 /** A receipt that exists locally but whose batch has not been anchored yet. */
@@ -195,6 +204,7 @@ export type PendingReceipt = {
   envelope: null;
   payloadCommitment?: undefined;
   payloadHash?: undefined;
+  commitmentSalt?: undefined;
 };
 
 export type AnyReceipt = Receipt | PendingReceipt;

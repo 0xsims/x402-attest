@@ -168,14 +168,25 @@ describe('receipt verification', () => {
   });
 
   it('detects a receipt bound to a different payload than the node holds (exit 2)', async () => {
-    rubric.options.corruptCommitment = true;
     const [receipt] = await makeReceipt(1);
-    // The receipt records the commitment it was issued; the node holds another.
-    const tampered = { ...receipt!, payloadCommitment: 'a'.repeat(64) };
-    const r = await verifyReceipt(tampered, { fetchImpl: fetch });
+    rubric.options.corruptCommitment = true; // node now serves a different commitment
+    const r = await verifyReceipt(receipt!, { fetchImpl: fetch });
     expect(r.code).toBe(VERIFY_EXIT.PROOF_MISMATCH);
     expect(r.checks.commitment).toBe('fail');
     expect(r.reason).toMatch(/bound to a different payload/);
+  });
+
+  it('detects an altered envelope locally, before any network call', async () => {
+    const [receipt] = await makeReceipt(1);
+    // Change the batch metadata; the commitment no longer opens.
+    const tampered = {
+      ...receipt!,
+      envelope: { ...receipt!.envelope, leafCount: 999 },
+    };
+    const r = await verifyReceipt(tampered, { offline: true });
+    expect(r.code).toBe(VERIFY_EXIT.PROOF_MISMATCH);
+    expect(r.checks.commitment).toBe('fail');
+    expect(r.reason).toMatch(/does not open its commitment/);
   });
 
   it('detects a root that was never the one submitted (exit 2)', async () => {
@@ -191,9 +202,15 @@ describe('receipt verification', () => {
     expect(r.reason).toMatch(/envelope names root/);
   });
 
-  it('reports the binding as unverifiable when no commitment exists', async () => {
+  it('reports the binding as unverifiable when nothing can bind the payload', async () => {
     const [receipt] = await makeReceipt(1);
-    const { payloadCommitment: _dropped, ...noCommitment } = receipt!;
+    // A receipt from a node that returned neither a commitment nor a payload key —
+    // e.g. an older server, or the direct /v1/attest path.
+    const {
+      payloadCommitment: _c,
+      commitmentSalt: _s,
+      ...noCommitment
+    } = receipt!;
     const r = await verifyReceipt(noCommitment as typeof receipt, { fetchImpl: fetch });
     // The attestation is anchored and the receipt is internally sound, but
     // nothing ties them together — that must not read as a clean pass.
@@ -202,16 +219,20 @@ describe('receipt verification', () => {
     expect(r.reason).toMatch(/no commitment available/);
   });
 
-  it('upgrades to a recomputed binding when the derivation is supplied', async () => {
+  it('recomputes the commitment from the envelope and its opening salt', async () => {
     const [receipt] = await makeReceipt(1);
-    // Stands in for Rubric's real derivation, once confirmed.
-    const r = await verifyReceipt(receipt!, {
-      fetchImpl: fetch,
-      recomputeCommitment: () => receipt!.payloadCommitment!,
-    });
+    // Fully trustless: nothing secret, nothing taken on the receipt's word.
+    expect(receipt!.commitmentSalt).toMatch(/^[0-9a-f]{64}$/);
+
+    const r = await verifyReceipt(receipt!, { fetchImpl: fetch });
     expect(r.ok).toBe(true);
     expect(r.binding).toBe('recomputed');
     expect(r.checks.commitment).toBe('pass');
+    expect(r.computed.commitment).toBe(receipt!.payloadCommitment);
+
+    // The salt is derived one-way from the payload key, so publishing it in a
+    // receipt does not disclose the key that decrypts the payload at Rubric.
+    expect(JSON.stringify(receipt)).not.toContain('a'.repeat(64));
   });
 
   it('reports a batch that has not reached the ledger yet (exit 3)', async () => {

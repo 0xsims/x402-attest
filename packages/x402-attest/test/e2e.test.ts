@@ -200,9 +200,9 @@ describe('end-to-end: paid call to verified receipt', () => {
         commitment: 'pass',
         anchored: 'pass',
       });
-      // Rubric never echoes the payload back, so the envelope-to-anchor link is
-      // matched by the commitment the receipt recorded, not recomputed here.
-      expect(result.binding).toBe('recorded');
+      // Rubric never echoes the payload back, but the receipt carries the opening
+      // salt, so the commitment is recomputed here rather than taken on trust.
+      expect(result.binding).toBe('recomputed');
       expect(result.remote?.commitment).toBe(receipt.payloadCommitment);
 
       // The receipt carries the payload that was actually submitted.

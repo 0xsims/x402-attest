@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { MERKLE_PARAMS } from './merkle.js';
 import { BATCH_SCHEMA_VERSION, type BatchEnvelope, type FetchLike } from './types.js';
 
@@ -26,10 +27,43 @@ export type AnchorResult = {
    */
   payloadCommitment?: string;
   payloadHash?: string;
+  /**
+   * Opening salt for the commitment, derived one-way from the payload key.
+   * Safe to place in a receipt; the key it came from is not.
+   */
+  commitmentSalt?: string;
   /** Path actually taken, recorded so a receipt can be traced to how it was paid. */
   via: 'tiered' | 'direct' | 'x402';
   raw: unknown;
 };
+
+/**
+ * Domain separator in Rubric's commitment salt derivation.
+ * Confirmed against the server implementation, not guessed.
+ */
+export const COMMIT_DOMAIN = ':rubric-commit-v1';
+
+/**
+ * Derive the opening salt for a payload commitment.
+ *
+ * Rubric computes
+ *   salt       = SHA-256(payloadKeyHex + ':rubric-commit-v1')
+ *   commitment = SHA-256(salt + RFC8785(payload))
+ *
+ * The salt is a one-way function of the payload key, which is what makes this
+ * safe to publish: a receipt can carry the salt, letting anyone recompute the
+ * commitment from the envelope, while the AES key that decrypts the payload
+ * stored at Rubric stays sealed. That is the opening the scheme was designed
+ * for — "opening discloses {plaintext, salt} only".
+ */
+export function deriveCommitmentSalt(payloadKeyHex: string): string {
+  return createHash('sha256').update(payloadKeyHex + COMMIT_DOMAIN).digest('hex');
+}
+
+/** Recompute a commitment from its salt and the canonical payload. */
+export function computeCommitment(salt: string, canonicalPayload: string): string {
+  return createHash('sha256').update(salt + canonicalPayload).digest('hex');
+}
 
 /** Read the commitment fields, tolerating both spellings seen in the wild. */
 function commitmentOf(body: unknown): { payloadCommitment?: string; payloadHash?: string } {
@@ -204,14 +238,17 @@ export class AnchorClient {
     }
 
     const payloadKey = (parsed as Record<string, unknown>)['payloadKey'];
+    let commitmentSalt: string | undefined;
     if (typeof payloadKey === 'string' && payloadKey.length > 0) {
       this.opts.onPayloadKey?.(attestationId, payloadKey);
+      commitmentSalt = deriveCommitmentSalt(payloadKey);
     }
 
     return {
       attestationId,
       verifyUrl: verifyUrlFor(this.opts.baseUrl, attestationId),
       ...commitmentOf(parsed),
+      ...(commitmentSalt ? { commitmentSalt } : {}),
       via: this.opts.endpoint,
       raw: parsed,
     };
@@ -278,8 +315,10 @@ export class AnchorClient {
 
     const o = parsed as Record<string, unknown>;
     const payloadKey = o['payloadKey'];
+    let commitmentSalt: string | undefined;
     if (typeof payloadKey === 'string' && payloadKey.length > 0) {
       this.opts.onPayloadKey?.(attestationId, payloadKey);
+      commitmentSalt = deriveCommitmentSalt(payloadKey);
     }
 
     // Prefer the server-supplied verifyUrl when present; it is authoritative about
@@ -289,7 +328,14 @@ export class AnchorClient {
         ? (o['verifyUrl'] as string)
         : verifyUrlFor(this.opts.baseUrl, attestationId);
 
-    return { attestationId, verifyUrl, ...commitmentOf(parsed), via: 'x402', raw: parsed };
+    return {
+      attestationId,
+      verifyUrl,
+      ...commitmentOf(parsed),
+      ...(commitmentSalt ? { commitmentSalt } : {}),
+      via: 'x402',
+      raw: parsed,
+    };
   }
 }
 

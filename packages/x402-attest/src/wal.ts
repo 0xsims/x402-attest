@@ -61,6 +61,8 @@ export type AnchorEntry = {
   envelope: BatchEnvelope;
   payloadCommitment?: string;
   payloadHash?: string;
+  /** Opening salt; safe to persist, unlike the payload key it derives from. */
+  commitmentSalt?: string;
 };
 
 export type WalReplay = {

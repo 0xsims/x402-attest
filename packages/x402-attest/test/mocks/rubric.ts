@@ -1,6 +1,7 @@
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { createHash, randomUUID } from 'node:crypto';
+import { jcs } from '../../src/jcs.js';
 
 /**
  * Mock Rubric node.
@@ -26,8 +27,8 @@ export type MockRubricOptions = {
   /** Price of a keyless attestation, atomic USDC. */
   attestPrice?: string;
   /**
-   * Issue a commitment that does not correspond to the submitted payload, so
-   * verification detects that a receipt is bound to a different attestation.
+   * Serve a different commitment from /v1/verify than the one issued at
+   * submission, so verification detects a receipt bound to another payload.
    */
   corruptCommitment?: boolean;
 };
@@ -44,6 +45,9 @@ export type MockRubric = {
 };
 
 const RUBRIC_PAYEE = '0x9999999999999999999999999999999999999999';
+
+/** Fixed so tests can derive the same opening salt the server would. */
+export const PAYLOAD_KEY = 'a'.repeat(64);
 
 /** What the node retains: a commitment, never the plaintext payload. */
 export type StoredAttestation = {
@@ -123,7 +127,9 @@ export async function startMockRubric(options: MockRubricOptions = {}): Promise<
             rubric_version: '1.0',
             issuer_node_region: 'us',
             issued_at: new Date(0).toISOString(),
-            payload: { payload_commitment: record.commitment },
+            payload: {
+              payload_commitment: options.corruptCommitment ? 'f'.repeat(64) : record.commitment,
+            },
             payload_hash: record.payloadHash,
             merkle_proof: ['e810aa20f40fd5a0ee3bb4b1781c2a3159e657771dbbde9482195eff62a933a8'],
             merkle_proof_directions: ['R'],
@@ -183,13 +189,15 @@ export async function startMockRubric(options: MockRubricOptions = {}): Promise<
 
       const attestationId = randomUUID();
 
-      // The commitment issued at submission and echoed by /v1/verify. Its real
-      // derivation is unconfirmed, so the mock treats it as opaque: tests must
-      // bind to the value the server issued, never recompute it themselves.
-      const canonical = JSON.stringify(parsed.data);
-      const commitment = options.corruptCommitment
-        ? 'f'.repeat(64)
-        : createHash('sha3-256').update(canonical).digest('hex');
+      // Rubric's actual commitment scheme, confirmed against the server source:
+      //   salt       = SHA-256(payloadKeyHex + ':rubric-commit-v1')
+      //   commitment = SHA-256(salt + RFC8785(payload))
+      // The salt is one-way in the key, which is why a receipt can publish it.
+      const canonical = jcs(parsed.data);
+      const salt = createHash('sha256')
+        .update(PAYLOAD_KEY + ':rubric-commit-v1')
+        .digest('hex');
+      const commitment = createHash('sha256').update(salt + canonical).digest('hex');
       const payloadHash = createHash('sha256').update(canonical).digest('hex');
       stored.set(attestationId, { commitment, payloadHash, submitted: parsed.data });
 
@@ -204,6 +212,7 @@ export async function startMockRubric(options: MockRubricOptions = {}): Promise<
             settled: true,
             settlement: { txHash: '0x' + 'ab'.repeat(32), network: 'base' },
             attestationId,
+            payloadKey: PAYLOAD_KEY,
             payloadCommitment: commitment,
             payloadHash,
             algorithm: 'ML-DSA-65',
@@ -220,7 +229,7 @@ export async function startMockRubric(options: MockRubricOptions = {}): Promise<
 
       return json(200, {
         attestationId,
-        payloadKey: 'a'.repeat(64),
+        payloadKey: PAYLOAD_KEY,
         payloadCommitment: commitment,
         payloadHash,
         status: 'buffered',

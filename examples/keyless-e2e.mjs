@@ -11,7 +11,7 @@
 import { createServer } from 'node:http';
 import { createHash, randomUUID } from 'node:crypto';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
-import { createTap, isAnchored, verifyReceipt, withAttestation } from '../packages/x402-attest/dist/index.js';
+import { createTap, isAnchored, jcs, verifyReceipt, withAttestation } from '../packages/x402-attest/dist/index.js';
 
 const WAL = './.tmp-example/wal';
 const OUT = './.tmp-example';
@@ -143,7 +143,15 @@ const rubricServer = createServer(async (req, res) => {
   const attestationId = randomUUID();
   // The node keeps a commitment, never the plaintext payload — tiered payloads
   // are encrypted at rest. This is the only handle /v1/verify gives back.
-  const commitment = createHash('sha3-256').update(JSON.stringify(data)).digest('hex');
+  //
+  //   salt       = SHA-256(payloadKey + ':rubric-commit-v1')
+  //   commitment = SHA-256(salt + RFC8785(payload))
+  //
+  // The salt is one-way in the key, so a receipt can publish the salt and stay
+  // fully verifiable while the decryption key stays sealed.
+  const PAYLOAD_KEY = 'a'.repeat(64);
+  const salt = createHash('sha256').update(PAYLOAD_KEY + ':rubric-commit-v1').digest('hex');
+  const commitment = createHash('sha256').update(salt + jcs(data)).digest('hex');
   anchored.set(attestationId, { commitment });
   return json(200, {
     success: true,
@@ -151,6 +159,7 @@ const rubricServer = createServer(async (req, res) => {
     settled: true,
     settlement: { txHash: '0x' + 'cd'.repeat(32), network: 'base' },
     attestationId,
+    payloadKey: PAYLOAD_KEY,
     payloadCommitment: commitment,
     algorithm: 'ML-DSA-65',
     topic: '0.0.10416909',

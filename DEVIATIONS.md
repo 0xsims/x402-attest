@@ -92,21 +92,34 @@ callRecord → leafHash → proof → root → envelope.root → commitment → 
 Steps 1, 2 and the envelope-root check are pure local computation. The last link
 compares the receipt's recorded commitment against the one the node holds.
 
-**The honest limitation.** How Rubric derives `payload_commitment` is unconfirmed
-(the docs call it a "SHA3-256 binding"), so the verifier cannot yet recompute it
-from the envelope. Until it can, that link is reported as
-`binding: 'recorded'` rather than `'recomputed'`, and the distinction is surfaced
-in `VerifyResult` and printed by the CLI. `recorded` detects a receipt pointed at
-the wrong attestation; it does not detect a receipt whose commitment and root were
-fabricated together. Pass `recomputeCommitment` to close the gap and the result
-upgrades automatically. When no commitment is available on either side the check
-reports `unverifiable` rather than passing silently.
+**The commitment scheme, read from the server source rather than guessed:**
+
+```
+salt       = SHA-256(payloadKeyHex + ':rubric-commit-v1')
+commitment = SHA-256(salt + RFC8785(payload))
+```
+
+The salt is one-way in the payload key. The implementation comment states the
+intent directly: *"opening discloses {plaintext, salt} only — decryption key stays
+sealed."* So the receipt carries the salt, not the key, and any third party can
+recompute the commitment from the envelope and compare it against the public
+verify endpoint. `binding: 'recomputed'`; the chain is trustless end to end and no
+secret is published.
+
+Where a salt is unavailable — an older node, or the direct `/v1/attest` path —
+the verifier falls back to `binding: 'recorded'` and says so; with nothing at all
+to bind with it reports `commitment: 'unverifiable'`. Neither is presented as a
+clean pass. An altered envelope fails locally, before any network call, because
+the commitment stops opening.
+
+Their canonicalizer is RFC 8785, the same as ours, so the recomputation is exact.
 
 **How this was missed until now.** The mock returned `data: <submitted payload>`
 in its verify response — it encoded the assumption and was then used to validate
 it, so a verifier that could never work against the real API passed every test.
-The mock now mirrors the observed live shape and deliberately does not model the
-commitment derivation, since guessing it would be the same mistake twice.
+The mock now mirrors the observed live shape and implements the confirmed
+commitment scheme — confirmed by reading the server, not inferred from a passing
+test.
 
 **Also confirmed, and reassuring:** the on-ledger tier-2 anchor (HCS topic
 `0.0.10416909`, seq 291514, read from the Hedera mirror node) declares

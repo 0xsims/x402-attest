@@ -121,6 +121,7 @@ export class Batcher {
         };
         if (a.payloadCommitment) rebuilt.payloadCommitment = a.payloadCommitment;
         if (a.payloadHash) rebuilt.payloadHash = a.payloadHash;
+        if (a.commitmentSalt) rebuilt.commitmentSalt = a.commitmentSalt;
         this.receipts.set(callId, rebuilt);
       }
     }
@@ -252,6 +253,7 @@ export class Batcher {
       };
       if (result.payloadCommitment) entry.payloadCommitment = result.payloadCommitment;
       if (result.payloadHash) entry.payloadHash = result.payloadHash;
+      if (result.commitmentSalt) entry.commitmentSalt = result.commitmentSalt;
       // Durable before it is observable: the anchor line is fsynced before any
       // receipt claims to be anchored, so a crash cannot leave a caller holding an
       // attestationId that the WAL has no record of.
@@ -270,6 +272,7 @@ export class Batcher {
         };
         if (result.payloadCommitment) receipt.payloadCommitment = result.payloadCommitment;
         if (result.payloadHash) receipt.payloadHash = result.payloadHash;
+        if (result.commitmentSalt) receipt.commitmentSalt = result.commitmentSalt;
         this.receipts.set(leaf.callId, receipt);
         this.safeEmit(receipt);
       }

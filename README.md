@@ -180,12 +180,16 @@ asked for `claude-sonnet-4.6` and the router served `gemini-2.5-flash`.
     "policyId": "trading-desk-v2",
     "merkle": { "hash": "sha256", "leafPrefix": "0x00", "nodePrefix": "0x01", "oddNode": "promote" }
   },
-  "payloadCommitment": "1654a32e8ca47dd30c4b23daf60ecf46b6caeed76c00b126be904ac04ddcc188"
+  "payloadCommitment": "1654a32e8ca47dd30c4b23daf60ecf46b6caeed76c00b126be904ac04ddcc188",
+  "commitmentSalt": "9d4f1c77b8e0a2536ac41e9f0b73d81552aa6e04c9f3b7182de60c4a5f9b2e33"
 }
 ```
 
 `envelope` is the exact payload submitted to Rubric, carried because Rubric does
-not give it back. Without it a verifier has nothing to bind the root to.
+not give it back. `commitmentSalt` opens the commitment the node holds. Note what
+is *not* here: the `payloadKey` the salt was derived from. That stays in
+`{walPath}/payload-keys.jsonl` at mode 0600 — the salt discloses the opening, not
+the key.
 
 Note what is *not* in there: no prompt, no completion, no query string, no payment
 authorization header, no `set-cookie` the seller sent. Only digests and the checks.
@@ -227,12 +231,11 @@ section before you cite a receipt to anyone.
   can not call the wrapper. This library makes the calls it sees undeniable; it
   cannot make omissions detectable. Batch `leafCount` and `firstCallId`/`lastCallId`
   make *gaps within an anchored batch* visible, and nothing more.
-- **That the root was the one submitted — not yet fully, anyway.** The last link
-  from the batch envelope to the anchored commitment is matched by recorded value,
-  not recomputed, because Rubric's commitment derivation is unconfirmed. A receipt
-  whose root and commitment were forged together would pass. Everything upstream
-  of that link is cryptographically checked, and `verifyReceipt` tells you which
-  kind of binding it achieved rather than glossing over the difference.
+- **Anything, if the receipt was produced without an opening salt.** With the salt
+  the whole chain is cryptographically checked. Without one — an older node, or
+  the direct `/v1/attest` path — the last link falls back to matching a recorded
+  value, which a forger who controlled both the root and the commitment could
+  satisfy. `verifyReceipt` always reports which binding it achieved.
 - **That the model served was any good, or correctly priced.**
   `model_matches_request` compares a requested string to a served string. It does
   not evaluate the output or the fairness of the price.
@@ -332,29 +335,35 @@ Four checks, and the first three are pure local computation:
 mainnet node: Rubric never echoes the submitted payload back. Tiered payloads are
 encrypted at rest and the endpoint returns only a commitment to them, so there is
 no root in the response to compare against. The receipt therefore carries the
-envelope and the commitment, and the chain runs
+envelope plus the commitment's **opening salt**, and the chain runs
 
 ```
 callRecord → leafHash → proof → root → envelope.root → commitment → anchored
 ```
 
-Every link is checked locally except the last. Binding the envelope to the
-commitment requires knowing how Rubric derives it, which is **not yet confirmed**,
-so `verifyReceipt` reports `binding: 'recorded'` — it matched the value the receipt
-recorded against the value the node holds. That catches a receipt pointed at the
-wrong attestation. It does not catch a receipt whose commitment and root were
-fabricated together. Supply `recomputeCommitment` once the derivation is known and
-the result upgrades to `binding: 'recomputed'`, which is fully trustless. If no
-commitment exists on either side the check reports `unverifiable`, never a silent
-pass.
+Rubric's commitment scheme is
 
-Programmatically:
-
-```ts
-import { verifyReceipt } from '@rubric/x402-attest/verify';
-const result = await verifyReceipt(receipt);        // { ok, code, reason, checks }
-const local  = await verifyReceipt(receipt, { offline: true });
 ```
+salt       = SHA-256(payloadKey + ':rubric-commit-v1')
+commitment = SHA-256(salt + RFC8785(payload))
+```
+
+The salt is a one-way function of the payload key, which is what makes the last
+link verifiable without disclosing anything. A receipt publishes the **salt**, so
+anyone can recompute the commitment from the envelope and compare it to what the
+node holds — while the AES key that decrypts the payload stored at Rubric never
+leaves your machine. `verifyReceipt` reports `binding: 'recomputed'`, and every
+link in the chain is checked rather than taken on trust.
+
+Two weaker states exist and are reported honestly rather than smoothed over.
+`binding: 'recorded'` means no salt was available, so the commitment was matched
+by the value the receipt recorded — that catches a receipt pointed at the wrong
+attestation, but not one whose root and commitment were fabricated together.
+`'none'`, with `commitment: 'unverifiable'`, means nothing could bind the payload
+at all. Neither is ever silently reported as a clean pass.
+
+An altered envelope is caught locally, before any network call, because the
+commitment no longer opens.
 
 ---
 
