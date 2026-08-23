@@ -80,6 +80,34 @@ npm test          # 208 tests, no live network
 npm run example   # full keyless demo against in-process mocks
 ```
 
+## Installing it
+
+Not published to npm yet. **Installing straight from git does not work** — npm
+would fetch the monorepo root rather than the package, and `dist/` is gitignored
+with no `prepare` script, so nothing usable lands. Build tarballs instead:
+
+```bash
+npm run pack        # -> ./tarballs/*.tgz, self-contained, dist included
+```
+
+Then in the consuming project:
+
+```bash
+npm i /path/to/rubric-protocol-x402-attest-0.1.0.tgz
+```
+
+Install **all three together** if you want the ClawRouter plugin or the verifier —
+they depend on `@rubric-protocol/x402-attest@0.1.0`, which cannot resolve from the
+registry while it is unpublished:
+
+```bash
+npm i ./tarballs/rubric-protocol-x402-attest-0.1.0.tgz \
+      ./tarballs/rubric-protocol-clawrouter-attest-0.1.0.tgz \
+      ./tarballs/rubric-protocol-x402-verify-cli-0.1.0.tgz
+```
+
+Both bins come with them: `x402-attest` and `x402-verify`.
+
 `npm run example` pays for three calls over x402, anchors them under one Merkle
 root by paying for the attestation over x402 as well, prints a receipt, verifies
 it, tampers with one byte, and verifies again.

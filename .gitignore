@@ -6,3 +6,4 @@ coverage/
 .tmp-test/
 *.log
 .tmp-example/
+tarballs/

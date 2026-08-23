@@ -19,7 +19,8 @@
     "test": "npm run build && vitest run",
     "test:watch": "vitest",
     "coverage": "npm run build && X402_ATTEST_SKIP_PERF=1 vitest run --coverage",
-    "example": "npm run build --silent && node examples/keyless-e2e.mjs"
+    "example": "npm run build --silent && node examples/keyless-e2e.mjs",
+    "pack": "npm run build && rm -rf ./tarballs && mkdir -p ./tarballs && npm exec --workspaces -- npm pack --pack-destination ../../tarballs"
   },
   "devDependencies": {
     "@types/node": "^20.14.10",
