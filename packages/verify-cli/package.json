@@ -1,5 +1,5 @@
 {
-  "name": "@rubric-protocol/x402-verify-cli",
+  "name": "@0xsims/x402-verify-cli",
   "version": "0.1.0",
   "description": "Standalone verifier for x402 attestation receipts. No API key, no network account, no trust in the agent that produced the receipt.",
   "license": "MIT",
@@ -18,6 +18,6 @@
     "build": "tsc -b"
   },
   "dependencies": {
-    "@rubric-protocol/x402-attest": "0.1.0"
+    "@0xsims/x402-attest": "0.1.0"
   }
 }

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { runCli } from '@rubric-protocol/x402-attest/cli';
+import { runCli } from '@0xsims/x402-attest/cli';
 
 runCli(process.argv.slice(2), undefined, undefined, 'x402-verify')
   .then((code) => {

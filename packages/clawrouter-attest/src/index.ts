@@ -7,7 +7,7 @@ import {
   type AttestOptions,
   type AttestedFetch,
   type FetchLike,
-} from '@rubric-protocol/x402-attest';
+} from '@0xsims/x402-attest';
 
 /**
  * ClawRouter attestation wiring.

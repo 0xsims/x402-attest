@@ -21,7 +21,7 @@ export {
   hashNode,
   verifyProof,
   MERKLE_PARAMS,
-} from '@rubric-protocol/x402-attest';
+} from '@0xsims/x402-attest';
 
 export type {
   VerifyResult,
@@ -30,6 +30,6 @@ export type {
   CallRecord,
   Assertion,
   ProofStep,
-} from '@rubric-protocol/x402-attest';
+} from '@0xsims/x402-attest';
 
-export { runCli, parseReceiptFile, parseArgs } from '@rubric-protocol/x402-attest/cli';
+export { runCli, parseReceiptFile, parseArgs } from '@0xsims/x402-attest/cli';
