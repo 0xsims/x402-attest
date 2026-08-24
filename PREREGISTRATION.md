@@ -197,7 +197,8 @@ to Rubric; the attestation id and Hedera sequence number are added below once
 confirmed, and the file is not modified before that submission.
 
 ```
-sha256(PREREGISTRATION.md) = <computed at anchoring>
-attestationId              = <returned at anchoring>
-hcs sequence               = <returned at anchoring>
+sha256(PREREGISTRATION.md) = a97c929a0077d0eccdecbd369f37a5277dbede72f40ac72e079cb5335a5f9e46
+                             (of this file at commit c81ca0c, before this footer was filled)
+attestationId              = 47cfc0e4-e54a-4f0f-a9d8-94fc09f49e1c
+hcs sequence               = 291930
 ```
