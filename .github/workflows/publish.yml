@@ -15,6 +15,6 @@ jobs:
       - run: npm i -g npm@latest
       - run: npm ci
       - run: npm run build
-      - run: npm publish -w @0xsims/x402-attest
-      - run: npm publish -w @0xsims/clawrouter-attest
-      - run: npm publish -w @0xsims/x402-verify-cli
+      - run: npm publish --access public -w @0xsims/x402-attest
+      - run: npm publish --access public -w @0xsims/clawrouter-attest
+      - run: npm publish --access public -w @0xsims/x402-verify-cli

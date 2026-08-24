@@ -24,7 +24,7 @@
     }
   },
   "bin": {
-    "x402-attest": "./bin/x402-attest.js"
+    "x402-attest": "bin/x402-attest.js"
   },
   "files": [
     "dist",
@@ -46,5 +46,8 @@
   "devDependencies": {
     "viem": "^2.55.19",
     "x402-fetch": "^1.2.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
