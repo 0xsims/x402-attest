@@ -1,0 +1,9 @@
+[
+  {
+    "batchId": "substitution-beta:1:824543426df4",
+    "status": "anchored",
+    "leafCount": 12,
+    "root": "824543426df4b3e01f04a499fa5edb704667584789116d538b3a011c6581cd96",
+    "attestationId": "36dda732-d173-4d95-bfe9-8bbb77f16383"
+  }
+]

@@ -8,3 +8,9 @@ coverage/
 .tmp-example/
 tarballs/
 .live-run/
+
+# attestation WAL — contains payload-keys.jsonl (decryption credentials)
+.prereg/wal/
+.beta-12/wal/
+**/payload-keys.jsonl
+.env

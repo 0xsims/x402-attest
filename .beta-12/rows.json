@@ -1,0 +1,2506 @@
+[
+  {
+    "i": 0,
+    "model": "openai/gpt-5.5",
+    "served": "openai/gpt-5.5",
+    "ptok": 19,
+    "ctok": 21,
+    "ms": 2772,
+    "status": 200,
+    "err": null,
+    "quoted": "2000",
+    "callId": "01a0359e-6add-7000-a234-691e9b94304a",
+    "assertions": [
+      {
+        "id": "price_matches_challenge",
+        "result": "pass",
+        "observed": "2000",
+        "expected": "2000"
+      },
+      {
+        "id": "payto_matches_challenge",
+        "result": "pass",
+        "observed": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+        "expected": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf"
+      },
+      {
+        "id": "network_allowed",
+        "result": "pass",
+        "observed": "eip155:8453",
+        "expected": "eip155:8453"
+      },
+      {
+        "id": "payto_allowed",
+        "result": "unknown",
+        "observed": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+        "detail": "policy.allowedPayTo not set"
+      },
+      {
+        "id": "price_within_policy",
+        "result": "pass",
+        "observed": "0.002000",
+        "expected": "0.05"
+      },
+      {
+        "id": "budget_within_cap",
+        "result": "pass",
+        "observed": "0.002000",
+        "expected": "0.50"
+      },
+      {
+        "id": "settled",
+        "result": "pass",
+        "observed": "0x3c3f219a3eca63bd817b2d7784525dce4475aa1cd4ee570d21899e0b51afcab1",
+        "detail": "source=x-payment-response"
+      },
+      {
+        "id": "model_matches_request",
+        "result": "pass",
+        "observed": "sha256:9a8f4a62b182ff6404e9604b2c58fb21389ac2f26e866f792969469da276a02f",
+        "expected": "sha256:9a8f4a62b182ff6404e9604b2c58fb21389ac2f26e866f792969469da276a02f",
+        "detail": "served-model source=body.model"
+      }
+    ],
+    "content": "attested",
+    "receipt": {
+      "callRecord": {
+        "v": 1,
+        "callId": "01a0359e-6add-7000-a234-691e9b94304a",
+        "subjectId": "substitution-beta",
+        "startedAt": "2026-08-24T21:12:49.629Z",
+        "endedAt": "2026-08-24T21:12:52.381Z",
+        "durationMs": 2752,
+        "request": {
+          "method": "POST",
+          "host": "blockrun.ai",
+          "path": "/api/v1/chat/completions",
+          "bodyHash": "96d01edabba7730051c71f297b67d4eceb88b43f61095cd0f76f8ebc3452583f",
+          "bodyBytes": 154,
+          "contentType": "application/json"
+        },
+        "response": {
+          "status": 200,
+          "bodyHash": "f5885f34000a71b35afbd1ddcefcc81be94a13fdd5369a6d22c5e696c6aa0990",
+          "bodyBytes": 480,
+          "headers": {
+            "content-type": "application/json",
+            "payment-response": "eyJzdWNjZXNzIjp0cnVlLCJ0cmFuc2FjdGlvbiI6IjB4M2MzZjIxOWEzZWNhNjNiZDgxN2IyZDc3ODQ1MjVkY2U0NDc1YWExY2Q0ZWU1NzBkMjE4OTllMGI1MWFmY2FiMSIsIm5ldHdvcmsiOiJlaXAxNTU6ODQ1MyIsInBheWVyIjoiMHg2QTc0MkFhNDBjMkEzYTVlYzZlYTczMGMzQzQ3RmNjODNDNDg3NTgzIn0="
+          }
+        },
+        "outcome": "ok",
+        "assertions": [
+          {
+            "id": "price_matches_challenge",
+            "result": "pass",
+            "observed": "2000",
+            "expected": "2000"
+          },
+          {
+            "id": "payto_matches_challenge",
+            "result": "pass",
+            "observed": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+            "expected": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf"
+          },
+          {
+            "id": "network_allowed",
+            "result": "pass",
+            "observed": "eip155:8453",
+            "expected": "eip155:8453"
+          },
+          {
+            "id": "payto_allowed",
+            "result": "unknown",
+            "observed": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+            "detail": "policy.allowedPayTo not set"
+          },
+          {
+            "id": "price_within_policy",
+            "result": "pass",
+            "observed": "0.002000",
+            "expected": "0.05"
+          },
+          {
+            "id": "budget_within_cap",
+            "result": "pass",
+            "observed": "0.002000",
+            "expected": "0.50"
+          },
+          {
+            "id": "settled",
+            "result": "pass",
+            "observed": "0x3c3f219a3eca63bd817b2d7784525dce4475aa1cd4ee570d21899e0b51afcab1",
+            "detail": "source=x-payment-response"
+          },
+          {
+            "id": "model_matches_request",
+            "result": "pass",
+            "observed": "sha256:9a8f4a62b182ff6404e9604b2c58fb21389ac2f26e866f792969469da276a02f",
+            "expected": "sha256:9a8f4a62b182ff6404e9604b2c58fb21389ac2f26e866f792969469da276a02f",
+            "detail": "served-model source=body.model"
+          }
+        ],
+        "sessionId": "beta-4x",
+        "challenge": {
+          "scheme": "exact",
+          "network": "eip155:8453",
+          "maxAmountRequired": "2000",
+          "payTo": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+          "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          "rawHash": "b9d0ef7de5b3067caef5f3acb1e4232d6b10cfc2b60b107c7286b701337d1607",
+          "resource": "https://blockrun.ai/api/v1/chat/completions",
+          "maxTimeoutSeconds": 300
+        },
+        "payment": {
+          "scheme": "exact",
+          "network": "eip155:8453",
+          "amountAuthorized": "2000",
+          "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          "payTo": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+          "xPaymentHash": "816042115b50dfe1e2028892e591cc0d3513a917ddd539ad1c00945aad550101"
+        },
+        "settlement": {
+          "success": true,
+          "source": "x-payment-response",
+          "txHash": "0x3c3f219a3eca63bd817b2d7784525dce4475aa1cd4ee570d21899e0b51afcab1",
+          "network": "eip155:8453"
+        }
+      },
+      "leafHash": "1677fef6e63115ed3ef6c0d438485560e0b7bb38159c9a3adfc7acffdbdcd9bf",
+      "proof": [
+        {
+          "hash": "b86ebc0ab3f0fac49e421b2ff822657e2e3f828bf46227f75461cd40cb9048dc",
+          "side": "right"
+        },
+        {
+          "hash": "156c41082734f3bc2a450902ed908cfb56d00b47e8a1728ac036ad890e7202c7",
+          "side": "right"
+        },
+        {
+          "hash": "de39474221863da340f4f586a05a4cadb3a2f52e55a8b36c62cd83dbee23a78a",
+          "side": "right"
+        },
+        {
+          "hash": "35ffe170e81d0833a74e9f9616b1bd299bcc68b75c85f4a32ab706a0e3ff5eaf",
+          "side": "right"
+        }
+      ],
+      "root": "824543426df4b3e01f04a499fa5edb704667584789116d538b3a011c6581cd96",
+      "attestationId": "36dda732-d173-4d95-bfe9-8bbb77f16383",
+      "verifyUrl": "https://rubric-protocol.com/audit/36dda732-d173-4d95-bfe9-8bbb77f16383",
+      "verifyApiUrl": "https://rubric-protocol.com/v1/verify/36dda732-d173-4d95-bfe9-8bbb77f16383",
+      "envelope": {
+        "schemaVersion": "rubric.x402-attest/v1",
+        "leafType": "DATA_RECORD",
+        "root": "824543426df4b3e01f04a499fa5edb704667584789116d538b3a011c6581cd96",
+        "leafCount": 12,
+        "firstCallId": "01a0359e-6add-7000-a234-691e9b94304a",
+        "lastCallId": "01a0359e-c394-7000-95b9-3d6f16e7834d",
+        "timeRange": {
+          "from": "2026-08-24T21:12:49.629Z",
+          "to": "2026-08-24T21:13:13.754Z"
+        },
+        "subjectId": "substitution-beta",
+        "merkle": {
+          "hash": "sha256",
+          "leafPrefix": "0x00",
+          "nodePrefix": "0x01",
+          "oddNode": "promote"
+        }
+      }
+    }
+  },
+  {
+    "i": 1,
+    "model": "openai/gpt-4o-mini",
+    "served": "openai/gpt-4o-mini",
+    "ptok": 20,
+    "ctok": 3,
+    "ms": 1597,
+    "status": 200,
+    "err": null,
+    "quoted": "2000",
+    "callId": "01a0359e-75b2-7000-a099-c46ab6b49ecd",
+    "assertions": [
+      {
+        "id": "price_matches_challenge",
+        "result": "pass",
+        "observed": "2000",
+        "expected": "2000"
+      },
+      {
+        "id": "payto_matches_challenge",
+        "result": "pass",
+        "observed": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+        "expected": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf"
+      },
+      {
+        "id": "network_allowed",
+        "result": "pass",
+        "observed": "eip155:8453",
+        "expected": "eip155:8453"
+      },
+      {
+        "id": "payto_allowed",
+        "result": "unknown",
+        "observed": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+        "detail": "policy.allowedPayTo not set"
+      },
+      {
+        "id": "price_within_policy",
+        "result": "pass",
+        "observed": "0.002000",
+        "expected": "0.05"
+      },
+      {
+        "id": "budget_within_cap",
+        "result": "pass",
+        "observed": "0.004000",
+        "expected": "0.50"
+      },
+      {
+        "id": "settled",
+        "result": "pass",
+        "observed": "0x9ca20c429b158f7f63f5efde575ec6b389b177d4f6ef05045f23989aef6290e9",
+        "detail": "source=x-payment-response"
+      },
+      {
+        "id": "model_matches_request",
+        "result": "pass",
+        "observed": "sha256:94d9f0da97276443ab83dd315d000eef5751916f8d4849c468859bd51b21d79f",
+        "expected": "sha256:94d9f0da97276443ab83dd315d000eef5751916f8d4849c468859bd51b21d79f",
+        "detail": "served-model source=body.model"
+      }
+    ],
+    "content": "Verified.",
+    "receipt": {
+      "callRecord": {
+        "v": 1,
+        "callId": "01a0359e-75b2-7000-a099-c46ab6b49ecd",
+        "subjectId": "substitution-beta",
+        "startedAt": "2026-08-24T21:12:52.402Z",
+        "endedAt": "2026-08-24T21:12:53.991Z",
+        "durationMs": 1589,
+        "request": {
+          "method": "POST",
+          "host": "blockrun.ai",
+          "path": "/api/v1/chat/completions",
+          "bodyHash": "41262fd34a62f699a9cca6303e20c9c63161a44a9a2d80e4b74c5ca53e17bbf4",
+          "bodyBytes": 158,
+          "contentType": "application/json"
+        },
+        "response": {
+          "status": 200,
+          "bodyHash": "608673026b4ca03ae369ea31695d80f911a694504f1b7f4b522c744bd5b0118e",
+          "bodyBytes": 484,
+          "headers": {
+            "content-type": "application/json",
+            "payment-response": "eyJzdWNjZXNzIjp0cnVlLCJ0cmFuc2FjdGlvbiI6IjB4OWNhMjBjNDI5YjE1OGY3ZjYzZjVlZmRlNTc1ZWM2YjM4OWIxNzdkNGY2ZWYwNTA0NWYyMzk4OWFlZjYyOTBlOSIsIm5ldHdvcmsiOiJlaXAxNTU6ODQ1MyIsInBheWVyIjoiMHg2QTc0MkFhNDBjMkEzYTVlYzZlYTczMGMzQzQ3RmNjODNDNDg3NTgzIn0="
+          }
+        },
+        "outcome": "ok",
+        "assertions": [
+          {
+            "id": "price_matches_challenge",
+            "result": "pass",
+            "observed": "2000",
+            "expected": "2000"
+          },
+          {
+            "id": "payto_matches_challenge",
+            "result": "pass",
+            "observed": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+            "expected": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf"
+          },
+          {
+            "id": "network_allowed",
+            "result": "pass",
+            "observed": "eip155:8453",
+            "expected": "eip155:8453"
+          },
+          {
+            "id": "payto_allowed",
+            "result": "unknown",
+            "observed": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+            "detail": "policy.allowedPayTo not set"
+          },
+          {
+            "id": "price_within_policy",
+            "result": "pass",
+            "observed": "0.002000",
+            "expected": "0.05"
+          },
+          {
+            "id": "budget_within_cap",
+            "result": "pass",
+            "observed": "0.004000",
+            "expected": "0.50"
+          },
+          {
+            "id": "settled",
+            "result": "pass",
+            "observed": "0x9ca20c429b158f7f63f5efde575ec6b389b177d4f6ef05045f23989aef6290e9",
+            "detail": "source=x-payment-response"
+          },
+          {
+            "id": "model_matches_request",
+            "result": "pass",
+            "observed": "sha256:94d9f0da97276443ab83dd315d000eef5751916f8d4849c468859bd51b21d79f",
+            "expected": "sha256:94d9f0da97276443ab83dd315d000eef5751916f8d4849c468859bd51b21d79f",
+            "detail": "served-model source=body.model"
+          }
+        ],
+        "sessionId": "beta-4x",
+        "challenge": {
+          "scheme": "exact",
+          "network": "eip155:8453",
+          "maxAmountRequired": "2000",
+          "payTo": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+          "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          "rawHash": "bb316899de838bf761bcd9a6dfc40fbede9c9d50e81d121a3f9ed274db1aa7f5",
+          "resource": "https://blockrun.ai/api/v1/chat/completions",
+          "maxTimeoutSeconds": 300
+        },
+        "payment": {
+          "scheme": "exact",
+          "network": "eip155:8453",
+          "amountAuthorized": "2000",
+          "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          "payTo": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+          "xPaymentHash": "f439f1d9afcd84ad6c7daabf544cb9c6c61799360a514fc3198bace2b47a0260"
+        },
+        "settlement": {
+          "success": true,
+          "source": "x-payment-response",
+          "txHash": "0x9ca20c429b158f7f63f5efde575ec6b389b177d4f6ef05045f23989aef6290e9",
+          "network": "eip155:8453"
+        }
+      },
+      "leafHash": "7dd45f54fce8e9672237abcd198795819d38fbf473b4410b31559b63719471b9",
+      "proof": [
+        {
+          "hash": "cad669d3dd51a0ec38efdf51e90d4cae7ca212385049d28f5d4d5092465651a6",
+          "side": "left"
+        },
+        {
+          "hash": "156c41082734f3bc2a450902ed908cfb56d00b47e8a1728ac036ad890e7202c7",
+          "side": "right"
+        },
+        {
+          "hash": "de39474221863da340f4f586a05a4cadb3a2f52e55a8b36c62cd83dbee23a78a",
+          "side": "right"
+        },
+        {
+          "hash": "35ffe170e81d0833a74e9f9616b1bd299bcc68b75c85f4a32ab706a0e3ff5eaf",
+          "side": "right"
+        }
+      ],
+      "root": "824543426df4b3e01f04a499fa5edb704667584789116d538b3a011c6581cd96",
+      "attestationId": "36dda732-d173-4d95-bfe9-8bbb77f16383",
+      "verifyUrl": "https://rubric-protocol.com/audit/36dda732-d173-4d95-bfe9-8bbb77f16383",
+      "verifyApiUrl": "https://rubric-protocol.com/v1/verify/36dda732-d173-4d95-bfe9-8bbb77f16383",
+      "envelope": {
+        "schemaVersion": "rubric.x402-attest/v1",
+        "leafType": "DATA_RECORD",
+        "root": "824543426df4b3e01f04a499fa5edb704667584789116d538b3a011c6581cd96",
+        "leafCount": 12,
+        "firstCallId": "01a0359e-6add-7000-a234-691e9b94304a",
+        "lastCallId": "01a0359e-c394-7000-95b9-3d6f16e7834d",
+        "timeRange": {
+          "from": "2026-08-24T21:12:49.629Z",
+          "to": "2026-08-24T21:13:13.754Z"
+        },
+        "subjectId": "substitution-beta",
+        "merkle": {
+          "hash": "sha256",
+          "leafPrefix": "0x00",
+          "nodePrefix": "0x01",
+          "oddNode": "promote"
+        }
+      }
+    }
+  },
+  {
+    "i": 2,
+    "model": "anthropic/claude-haiku-4.5",
+    "served": "anthropic/claude-haiku-4.5",
+    "ptok": 20,
+    "ctok": 5,
+    "ms": 2192,
+    "status": 200,
+    "err": null,
+    "quoted": "2000",
+    "callId": "01a0359e-7bef-7000-995e-6b613b69014c",
+    "assertions": [
+      {
+        "id": "price_matches_challenge",
+        "result": "pass",
+        "observed": "2000",
+        "expected": "2000"
+      },
+      {
+        "id": "payto_matches_challenge",
+        "result": "pass",
+        "observed": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+        "expected": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf"
+      },
+      {
+        "id": "network_allowed",
+        "result": "pass",
+        "observed": "eip155:8453",
+        "expected": "eip155:8453"
+      },
+      {
+        "id": "payto_allowed",
+        "result": "unknown",
+        "observed": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+        "detail": "policy.allowedPayTo not set"
+      },
+      {
+        "id": "price_within_policy",
+        "result": "pass",
+        "observed": "0.002000",
+        "expected": "0.05"
+      },
+      {
+        "id": "budget_within_cap",
+        "result": "pass",
+        "observed": "0.006000",
+        "expected": "0.50"
+      },
+      {
+        "id": "settled",
+        "result": "pass",
+        "observed": "0x18f48340f841f5510a278eef90216fb07618a36486e5c4462aee86e89a1bed1f",
+        "detail": "source=x-payment-response"
+      },
+      {
+        "id": "model_matches_request",
+        "result": "pass",
+        "observed": "sha256:9122fecaae125a57d2c3fd4cdebfe891b3e30ca865a07ffe11fafad2f4b9a5aa",
+        "expected": "sha256:9122fecaae125a57d2c3fd4cdebfe891b3e30ca865a07ffe11fafad2f4b9a5aa",
+        "detail": "served-model source=body.model"
+      }
+    ],
+    "content": "attested",
+    "receipt": {
+      "callRecord": {
+        "v": 1,
+        "callId": "01a0359e-7bef-7000-995e-6b613b69014c",
+        "subjectId": "substitution-beta",
+        "startedAt": "2026-08-24T21:12:53.999Z",
+        "endedAt": "2026-08-24T21:12:56.186Z",
+        "durationMs": 2187,
+        "request": {
+          "method": "POST",
+          "host": "blockrun.ai",
+          "path": "/api/v1/chat/completions",
+          "bodyHash": "7133a8b1887286edd3b1160419f9be6f4bcec7dc2c1ec0b3196a72ce74751bb3",
+          "bodyBytes": 166,
+          "contentType": "application/json"
+        },
+        "response": {
+          "status": 200,
+          "bodyHash": "a3db35d90dcc282e5a74f398cb9fdfa25594d29a84d55cf7c20b5f02f0241606",
+          "bodyBytes": 301,
+          "headers": {
+            "content-type": "application/json",
+            "payment-response": "eyJzdWNjZXNzIjp0cnVlLCJ0cmFuc2FjdGlvbiI6IjB4MThmNDgzNDBmODQxZjU1MTBhMjc4ZWVmOTAyMTZmYjA3NjE4YTM2NDg2ZTVjNDQ2MmFlZTg2ZTg5YTFiZWQxZiIsIm5ldHdvcmsiOiJlaXAxNTU6ODQ1MyIsInBheWVyIjoiMHg2QTc0MkFhNDBjMkEzYTVlYzZlYTczMGMzQzQ3RmNjODNDNDg3NTgzIn0="
+          }
+        },
+        "outcome": "ok",
+        "assertions": [
+          {
+            "id": "price_matches_challenge",
+            "result": "pass",
+            "observed": "2000",
+            "expected": "2000"
+          },
+          {
+            "id": "payto_matches_challenge",
+            "result": "pass",
+            "observed": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+            "expected": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf"
+          },
+          {
+            "id": "network_allowed",
+            "result": "pass",
+            "observed": "eip155:8453",
+            "expected": "eip155:8453"
+          },
+          {
+            "id": "payto_allowed",
+            "result": "unknown",
+            "observed": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+            "detail": "policy.allowedPayTo not set"
+          },
+          {
+            "id": "price_within_policy",
+            "result": "pass",
+            "observed": "0.002000",
+            "expected": "0.05"
+          },
+          {
+            "id": "budget_within_cap",
+            "result": "pass",
+            "observed": "0.006000",
+            "expected": "0.50"
+          },
+          {
+            "id": "settled",
+            "result": "pass",
+            "observed": "0x18f48340f841f5510a278eef90216fb07618a36486e5c4462aee86e89a1bed1f",
+            "detail": "source=x-payment-response"
+          },
+          {
+            "id": "model_matches_request",
+            "result": "pass",
+            "observed": "sha256:9122fecaae125a57d2c3fd4cdebfe891b3e30ca865a07ffe11fafad2f4b9a5aa",
+            "expected": "sha256:9122fecaae125a57d2c3fd4cdebfe891b3e30ca865a07ffe11fafad2f4b9a5aa",
+            "detail": "served-model source=body.model"
+          }
+        ],
+        "sessionId": "beta-4x",
+        "challenge": {
+          "scheme": "exact",
+          "network": "eip155:8453",
+          "maxAmountRequired": "2000",
+          "payTo": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+          "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          "rawHash": "c5bb0e6c88ec1e8f71eba30d455dc5532b37b2fe9561225b78132f5ce18406dd",
+          "resource": "https://blockrun.ai/api/v1/chat/completions",
+          "maxTimeoutSeconds": 300
+        },
+        "payment": {
+          "scheme": "exact",
+          "network": "eip155:8453",
+          "amountAuthorized": "2000",
+          "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          "payTo": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+          "xPaymentHash": "5b0af3c134fd4e239c7657849e9e4616fbdf5a0b3918b1a66883d64fbc6f8a8e"
+        },
+        "settlement": {
+          "success": true,
+          "source": "x-payment-response",
+          "txHash": "0x18f48340f841f5510a278eef90216fb07618a36486e5c4462aee86e89a1bed1f",
+          "network": "eip155:8453"
+        }
+      },
+      "leafHash": "3d14fe29026e89c97483f46f55a929245094e9db4660f8685b37ba41a887140f",
+      "proof": [
+        {
+          "hash": "14e5e974f370a1c83e76f99c42f6ec5a5041b2b7031a96c27286b91d64e922b9",
+          "side": "right"
+        },
+        {
+          "hash": "19849dbb3eca872d7f891d368db125147e4e3e6b9f8a049d90724ba30cf5b907",
+          "side": "left"
+        },
+        {
+          "hash": "de39474221863da340f4f586a05a4cadb3a2f52e55a8b36c62cd83dbee23a78a",
+          "side": "right"
+        },
+        {
+          "hash": "35ffe170e81d0833a74e9f9616b1bd299bcc68b75c85f4a32ab706a0e3ff5eaf",
+          "side": "right"
+        }
+      ],
+      "root": "824543426df4b3e01f04a499fa5edb704667584789116d538b3a011c6581cd96",
+      "attestationId": "36dda732-d173-4d95-bfe9-8bbb77f16383",
+      "verifyUrl": "https://rubric-protocol.com/audit/36dda732-d173-4d95-bfe9-8bbb77f16383",
+      "verifyApiUrl": "https://rubric-protocol.com/v1/verify/36dda732-d173-4d95-bfe9-8bbb77f16383",
+      "envelope": {
+        "schemaVersion": "rubric.x402-attest/v1",
+        "leafType": "DATA_RECORD",
+        "root": "824543426df4b3e01f04a499fa5edb704667584789116d538b3a011c6581cd96",
+        "leafCount": 12,
+        "firstCallId": "01a0359e-6add-7000-a234-691e9b94304a",
+        "lastCallId": "01a0359e-c394-7000-95b9-3d6f16e7834d",
+        "timeRange": {
+          "from": "2026-08-24T21:12:49.629Z",
+          "to": "2026-08-24T21:13:13.754Z"
+        },
+        "subjectId": "substitution-beta",
+        "merkle": {
+          "hash": "sha256",
+          "leafPrefix": "0x00",
+          "nodePrefix": "0x01",
+          "oddNode": "promote"
+        }
+      }
+    }
+  },
+  {
+    "i": 3,
+    "model": "google/gemini-2.5-flash",
+    "served": "google/gemini-2.5-flash",
+    "ptok": 13,
+    "ctok": 2,
+    "ms": 1488,
+    "status": 200,
+    "err": null,
+    "quoted": "2000",
+    "callId": "01a0359e-847f-7000-9584-2eed3eb46f16",
+    "assertions": [
+      {
+        "id": "price_matches_challenge",
+        "result": "pass",
+        "observed": "2000",
+        "expected": "2000"
+      },
+      {
+        "id": "payto_matches_challenge",
+        "result": "pass",
+        "observed": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+        "expected": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf"
+      },
+      {
+        "id": "network_allowed",
+        "result": "pass",
+        "observed": "eip155:8453",
+        "expected": "eip155:8453"
+      },
+      {
+        "id": "payto_allowed",
+        "result": "unknown",
+        "observed": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+        "detail": "policy.allowedPayTo not set"
+      },
+      {
+        "id": "price_within_policy",
+        "result": "pass",
+        "observed": "0.002000",
+        "expected": "0.05"
+      },
+      {
+        "id": "budget_within_cap",
+        "result": "pass",
+        "observed": "0.008000",
+        "expected": "0.50"
+      },
+      {
+        "id": "settled",
+        "result": "pass",
+        "observed": "0xc0a3475aecbce259463e91044ba46cf84553d0bb81ce78100fe757c13d1d4435",
+        "detail": "source=x-payment-response"
+      },
+      {
+        "id": "model_matches_request",
+        "result": "pass",
+        "observed": "sha256:cd62f9d5ea30935dafdf7850f2035a007b1ccc1920abf400c4410ceb68d795e5",
+        "expected": "sha256:cd62f9d5ea30935dafdf7850f2035a007b1ccc1920abf400c4410ceb68d795e5",
+        "detail": "served-model source=body.model"
+      }
+    ],
+    "content": "attested",
+    "receipt": {
+      "callRecord": {
+        "v": 1,
+        "callId": "01a0359e-847f-7000-9584-2eed3eb46f16",
+        "subjectId": "substitution-beta",
+        "startedAt": "2026-08-24T21:12:56.191Z",
+        "endedAt": "2026-08-24T21:12:57.673Z",
+        "durationMs": 1482,
+        "request": {
+          "method": "POST",
+          "host": "blockrun.ai",
+          "path": "/api/v1/chat/completions",
+          "bodyHash": "42e7e5f5f05146733570dde9aa9637d72287509caecfcc68b1639c66263100fe",
+          "bodyBytes": 163,
+          "contentType": "application/json"
+        },
+        "response": {
+          "status": 200,
+          "bodyHash": "c5bfff1efa19b559be03e249a3090dcda43dfc8cf67b2128c5eee9550340fb82",
+          "bodyBytes": 279,
+          "headers": {
+            "content-type": "application/json",
+            "payment-response": "eyJzdWNjZXNzIjp0cnVlLCJ0cmFuc2FjdGlvbiI6IjB4YzBhMzQ3NWFlY2JjZTI1OTQ2M2U5MTA0NGJhNDZjZjg0NTUzZDBiYjgxY2U3ODEwMGZlNzU3YzEzZDFkNDQzNSIsIm5ldHdvcmsiOiJlaXAxNTU6ODQ1MyIsInBheWVyIjoiMHg2QTc0MkFhNDBjMkEzYTVlYzZlYTczMGMzQzQ3RmNjODNDNDg3NTgzIn0="
+          }
+        },
+        "outcome": "ok",
+        "assertions": [
+          {
+            "id": "price_matches_challenge",
+            "result": "pass",
+            "observed": "2000",
+            "expected": "2000"
+          },
+          {
+            "id": "payto_matches_challenge",
+            "result": "pass",
+            "observed": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+            "expected": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf"
+          },
+          {
+            "id": "network_allowed",
+            "result": "pass",
+            "observed": "eip155:8453",
+            "expected": "eip155:8453"
+          },
+          {
+            "id": "payto_allowed",
+            "result": "unknown",
+            "observed": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+            "detail": "policy.allowedPayTo not set"
+          },
+          {
+            "id": "price_within_policy",
+            "result": "pass",
+            "observed": "0.002000",
+            "expected": "0.05"
+          },
+          {
+            "id": "budget_within_cap",
+            "result": "pass",
+            "observed": "0.008000",
+            "expected": "0.50"
+          },
+          {
+            "id": "settled",
+            "result": "pass",
+            "observed": "0xc0a3475aecbce259463e91044ba46cf84553d0bb81ce78100fe757c13d1d4435",
+            "detail": "source=x-payment-response"
+          },
+          {
+            "id": "model_matches_request",
+            "result": "pass",
+            "observed": "sha256:cd62f9d5ea30935dafdf7850f2035a007b1ccc1920abf400c4410ceb68d795e5",
+            "expected": "sha256:cd62f9d5ea30935dafdf7850f2035a007b1ccc1920abf400c4410ceb68d795e5",
+            "detail": "served-model source=body.model"
+          }
+        ],
+        "sessionId": "beta-4x",
+        "challenge": {
+          "scheme": "exact",
+          "network": "eip155:8453",
+          "maxAmountRequired": "2000",
+          "payTo": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+          "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          "rawHash": "066c90815a6c39993418525a4169005a1eee0fe4d3399688271267510ca35ff2",
+          "resource": "https://blockrun.ai/api/v1/chat/completions",
+          "maxTimeoutSeconds": 300
+        },
+        "payment": {
+          "scheme": "exact",
+          "network": "eip155:8453",
+          "amountAuthorized": "2000",
+          "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          "payTo": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+          "xPaymentHash": "1b4f8085fb69fa059c0603b2a4ddfa15ecc32b94a17b8b0fa5c294df75a6f79d"
+        },
+        "settlement": {
+          "success": true,
+          "source": "x-payment-response",
+          "txHash": "0xc0a3475aecbce259463e91044ba46cf84553d0bb81ce78100fe757c13d1d4435",
+          "network": "eip155:8453"
+        }
+      },
+      "leafHash": "40c88660b8bc637f8265094eae55a43a5a2cbcb0b7b3d4628ba6535bc65f8131",
+      "proof": [
+        {
+          "hash": "d85a6e95cc7b22917e5ef0e729994eb01185aa637c8152507e2ed30db4b5dca5",
+          "side": "left"
+        },
+        {
+          "hash": "19849dbb3eca872d7f891d368db125147e4e3e6b9f8a049d90724ba30cf5b907",
+          "side": "left"
+        },
+        {
+          "hash": "de39474221863da340f4f586a05a4cadb3a2f52e55a8b36c62cd83dbee23a78a",
+          "side": "right"
+        },
+        {
+          "hash": "35ffe170e81d0833a74e9f9616b1bd299bcc68b75c85f4a32ab706a0e3ff5eaf",
+          "side": "right"
+        }
+      ],
+      "root": "824543426df4b3e01f04a499fa5edb704667584789116d538b3a011c6581cd96",
+      "attestationId": "36dda732-d173-4d95-bfe9-8bbb77f16383",
+      "verifyUrl": "https://rubric-protocol.com/audit/36dda732-d173-4d95-bfe9-8bbb77f16383",
+      "verifyApiUrl": "https://rubric-protocol.com/v1/verify/36dda732-d173-4d95-bfe9-8bbb77f16383",
+      "envelope": {
+        "schemaVersion": "rubric.x402-attest/v1",
+        "leafType": "DATA_RECORD",
+        "root": "824543426df4b3e01f04a499fa5edb704667584789116d538b3a011c6581cd96",
+        "leafCount": 12,
+        "firstCallId": "01a0359e-6add-7000-a234-691e9b94304a",
+        "lastCallId": "01a0359e-c394-7000-95b9-3d6f16e7834d",
+        "timeRange": {
+          "from": "2026-08-24T21:12:49.629Z",
+          "to": "2026-08-24T21:13:13.754Z"
+        },
+        "subjectId": "substitution-beta",
+        "merkle": {
+          "hash": "sha256",
+          "leafPrefix": "0x00",
+          "nodePrefix": "0x01",
+          "oddNode": "promote"
+        }
+      }
+    }
+  },
+  {
+    "i": 4,
+    "model": "openai/gpt-5.5",
+    "served": "openai/gpt-5.5",
+    "ptok": 19,
+    "ctok": 6,
+    "ms": 2293,
+    "status": 200,
+    "err": null,
+    "quoted": "2000",
+    "callId": "01a0359e-8a4f-7000-aa5b-1075b4082a36",
+    "assertions": [
+      {
+        "id": "price_matches_challenge",
+        "result": "pass",
+        "observed": "2000",
+        "expected": "2000"
+      },
+      {
+        "id": "payto_matches_challenge",
+        "result": "pass",
+        "observed": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+        "expected": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf"
+      },
+      {
+        "id": "network_allowed",
+        "result": "pass",
+        "observed": "eip155:8453",
+        "expected": "eip155:8453"
+      },
+      {
+        "id": "payto_allowed",
+        "result": "unknown",
+        "observed": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+        "detail": "policy.allowedPayTo not set"
+      },
+      {
+        "id": "price_within_policy",
+        "result": "pass",
+        "observed": "0.002000",
+        "expected": "0.05"
+      },
+      {
+        "id": "budget_within_cap",
+        "result": "pass",
+        "observed": "0.010000",
+        "expected": "0.50"
+      },
+      {
+        "id": "settled",
+        "result": "pass",
+        "observed": "0xbcc613da23ce33416901fc179638e7c3fe4e27add8c9c8f8f8247628a115d98f",
+        "detail": "source=x-payment-response"
+      },
+      {
+        "id": "model_matches_request",
+        "result": "pass",
+        "observed": "sha256:9a8f4a62b182ff6404e9604b2c58fb21389ac2f26e866f792969469da276a02f",
+        "expected": "sha256:9a8f4a62b182ff6404e9604b2c58fb21389ac2f26e866f792969469da276a02f",
+        "detail": "served-model source=body.model"
+      }
+    ],
+    "content": "attested",
+    "receipt": {
+      "callRecord": {
+        "v": 1,
+        "callId": "01a0359e-8a4f-7000-aa5b-1075b4082a36",
+        "subjectId": "substitution-beta",
+        "startedAt": "2026-08-24T21:12:57.679Z",
+        "endedAt": "2026-08-24T21:12:59.966Z",
+        "durationMs": 2287,
+        "request": {
+          "method": "POST",
+          "host": "blockrun.ai",
+          "path": "/api/v1/chat/completions",
+          "bodyHash": "96d01edabba7730051c71f297b67d4eceb88b43f61095cd0f76f8ebc3452583f",
+          "bodyBytes": 154,
+          "contentType": "application/json"
+        },
+        "response": {
+          "status": 200,
+          "bodyHash": "f7a7b280aef1917950b23831925e78a475fad4e5c7bc41857e0be388c49cee2d",
+          "bodyBytes": 479,
+          "headers": {
+            "content-type": "application/json",
+            "payment-response": "eyJzdWNjZXNzIjp0cnVlLCJ0cmFuc2FjdGlvbiI6IjB4YmNjNjEzZGEyM2NlMzM0MTY5MDFmYzE3OTYzOGU3YzNmZTRlMjdhZGQ4YzljOGY4ZjgyNDc2MjhhMTE1ZDk4ZiIsIm5ldHdvcmsiOiJlaXAxNTU6ODQ1MyIsInBheWVyIjoiMHg2QTc0MkFhNDBjMkEzYTVlYzZlYTczMGMzQzQ3RmNjODNDNDg3NTgzIn0="
+          }
+        },
+        "outcome": "ok",
+        "assertions": [
+          {
+            "id": "price_matches_challenge",
+            "result": "pass",
+            "observed": "2000",
+            "expected": "2000"
+          },
+          {
+            "id": "payto_matches_challenge",
+            "result": "pass",
+            "observed": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+            "expected": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf"
+          },
+          {
+            "id": "network_allowed",
+            "result": "pass",
+            "observed": "eip155:8453",
+            "expected": "eip155:8453"
+          },
+          {
+            "id": "payto_allowed",
+            "result": "unknown",
+            "observed": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+            "detail": "policy.allowedPayTo not set"
+          },
+          {
+            "id": "price_within_policy",
+            "result": "pass",
+            "observed": "0.002000",
+            "expected": "0.05"
+          },
+          {
+            "id": "budget_within_cap",
+            "result": "pass",
+            "observed": "0.010000",
+            "expected": "0.50"
+          },
+          {
+            "id": "settled",
+            "result": "pass",
+            "observed": "0xbcc613da23ce33416901fc179638e7c3fe4e27add8c9c8f8f8247628a115d98f",
+            "detail": "source=x-payment-response"
+          },
+          {
+            "id": "model_matches_request",
+            "result": "pass",
+            "observed": "sha256:9a8f4a62b182ff6404e9604b2c58fb21389ac2f26e866f792969469da276a02f",
+            "expected": "sha256:9a8f4a62b182ff6404e9604b2c58fb21389ac2f26e866f792969469da276a02f",
+            "detail": "served-model source=body.model"
+          }
+        ],
+        "sessionId": "beta-4x",
+        "challenge": {
+          "scheme": "exact",
+          "network": "eip155:8453",
+          "maxAmountRequired": "2000",
+          "payTo": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+          "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          "rawHash": "b9d0ef7de5b3067caef5f3acb1e4232d6b10cfc2b60b107c7286b701337d1607",
+          "resource": "https://blockrun.ai/api/v1/chat/completions",
+          "maxTimeoutSeconds": 300
+        },
+        "payment": {
+          "scheme": "exact",
+          "network": "eip155:8453",
+          "amountAuthorized": "2000",
+          "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          "payTo": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+          "xPaymentHash": "e6d1eccd1923db8a840b2f69092188281245e6e153da880ae1ab029d07b66e5e"
+        },
+        "settlement": {
+          "success": true,
+          "source": "x-payment-response",
+          "txHash": "0xbcc613da23ce33416901fc179638e7c3fe4e27add8c9c8f8f8247628a115d98f",
+          "network": "eip155:8453"
+        }
+      },
+      "leafHash": "13ef09bb719fff1e4cfe6b7c572fe295aca72df1be5ed90d76199f817f4e3cd7",
+      "proof": [
+        {
+          "hash": "b5bd0e7559b64288760ccbe51a9aaaa73cafb963e8a754670eaad943cc3e67f2",
+          "side": "right"
+        },
+        {
+          "hash": "358b0093ad51ac473da12c41a807cf39eafc8756ca230b60a66e36119fb84a30",
+          "side": "right"
+        },
+        {
+          "hash": "dc622582b5c604867b99647c618917c6768b251f64cc0df42678a3e2539efd18",
+          "side": "left"
+        },
+        {
+          "hash": "35ffe170e81d0833a74e9f9616b1bd299bcc68b75c85f4a32ab706a0e3ff5eaf",
+          "side": "right"
+        }
+      ],
+      "root": "824543426df4b3e01f04a499fa5edb704667584789116d538b3a011c6581cd96",
+      "attestationId": "36dda732-d173-4d95-bfe9-8bbb77f16383",
+      "verifyUrl": "https://rubric-protocol.com/audit/36dda732-d173-4d95-bfe9-8bbb77f16383",
+      "verifyApiUrl": "https://rubric-protocol.com/v1/verify/36dda732-d173-4d95-bfe9-8bbb77f16383",
+      "envelope": {
+        "schemaVersion": "rubric.x402-attest/v1",
+        "leafType": "DATA_RECORD",
+        "root": "824543426df4b3e01f04a499fa5edb704667584789116d538b3a011c6581cd96",
+        "leafCount": 12,
+        "firstCallId": "01a0359e-6add-7000-a234-691e9b94304a",
+        "lastCallId": "01a0359e-c394-7000-95b9-3d6f16e7834d",
+        "timeRange": {
+          "from": "2026-08-24T21:12:49.629Z",
+          "to": "2026-08-24T21:13:13.754Z"
+        },
+        "subjectId": "substitution-beta",
+        "merkle": {
+          "hash": "sha256",
+          "leafPrefix": "0x00",
+          "nodePrefix": "0x01",
+          "oddNode": "promote"
+        }
+      }
+    }
+  },
+  {
+    "i": 5,
+    "model": "openai/gpt-4o-mini",
+    "served": "openai/gpt-4o-mini",
+    "ptok": 20,
+    "ctok": 3,
+    "ms": 2059,
+    "status": 200,
+    "err": null,
+    "quoted": "2000",
+    "callId": "01a0359e-9344-7000-8c81-dc04a042dc35",
+    "assertions": [
+      {
+        "id": "price_matches_challenge",
+        "result": "pass",
+        "observed": "2000",
+        "expected": "2000"
+      },
+      {
+        "id": "payto_matches_challenge",
+        "result": "pass",
+        "observed": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+        "expected": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf"
+      },
+      {
+        "id": "network_allowed",
+        "result": "pass",
+        "observed": "eip155:8453",
+        "expected": "eip155:8453"
+      },
+      {
+        "id": "payto_allowed",
+        "result": "unknown",
+        "observed": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+        "detail": "policy.allowedPayTo not set"
+      },
+      {
+        "id": "price_within_policy",
+        "result": "pass",
+        "observed": "0.002000",
+        "expected": "0.05"
+      },
+      {
+        "id": "budget_within_cap",
+        "result": "pass",
+        "observed": "0.012000",
+        "expected": "0.50"
+      },
+      {
+        "id": "settled",
+        "result": "pass",
+        "observed": "0xabbb36624060272b510405dc60647172507c2a8756ac738bbc76650b9e6288f2",
+        "detail": "source=x-payment-response"
+      },
+      {
+        "id": "model_matches_request",
+        "result": "pass",
+        "observed": "sha256:94d9f0da97276443ab83dd315d000eef5751916f8d4849c468859bd51b21d79f",
+        "expected": "sha256:94d9f0da97276443ab83dd315d000eef5751916f8d4849c468859bd51b21d79f",
+        "detail": "served-model source=body.model"
+      }
+    ],
+    "content": "Verified.",
+    "receipt": {
+      "callRecord": {
+        "v": 1,
+        "callId": "01a0359e-9344-7000-8c81-dc04a042dc35",
+        "subjectId": "substitution-beta",
+        "startedAt": "2026-08-24T21:12:59.972Z",
+        "endedAt": "2026-08-24T21:13:02.011Z",
+        "durationMs": 2039,
+        "request": {
+          "method": "POST",
+          "host": "blockrun.ai",
+          "path": "/api/v1/chat/completions",
+          "bodyHash": "41262fd34a62f699a9cca6303e20c9c63161a44a9a2d80e4b74c5ca53e17bbf4",
+          "bodyBytes": 158,
+          "contentType": "application/json"
+        },
+        "response": {
+          "status": 200,
+          "bodyHash": "1f5d6e684e0d8c2daaa3797df4e7c35cbb7be3060d714294f40b062f386fb641",
+          "bodyBytes": 484,
+          "headers": {
+            "content-type": "application/json",
+            "payment-response": "eyJzdWNjZXNzIjp0cnVlLCJ0cmFuc2FjdGlvbiI6IjB4YWJiYjM2NjI0MDYwMjcyYjUxMDQwNWRjNjA2NDcxNzI1MDdjMmE4NzU2YWM3MzhiYmM3NjY1MGI5ZTYyODhmMiIsIm5ldHdvcmsiOiJlaXAxNTU6ODQ1MyIsInBheWVyIjoiMHg2QTc0MkFhNDBjMkEzYTVlYzZlYTczMGMzQzQ3RmNjODNDNDg3NTgzIn0="
+          }
+        },
+        "outcome": "ok",
+        "assertions": [
+          {
+            "id": "price_matches_challenge",
+            "result": "pass",
+            "observed": "2000",
+            "expected": "2000"
+          },
+          {
+            "id": "payto_matches_challenge",
+            "result": "pass",
+            "observed": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+            "expected": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf"
+          },
+          {
+            "id": "network_allowed",
+            "result": "pass",
+            "observed": "eip155:8453",
+            "expected": "eip155:8453"
+          },
+          {
+            "id": "payto_allowed",
+            "result": "unknown",
+            "observed": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+            "detail": "policy.allowedPayTo not set"
+          },
+          {
+            "id": "price_within_policy",
+            "result": "pass",
+            "observed": "0.002000",
+            "expected": "0.05"
+          },
+          {
+            "id": "budget_within_cap",
+            "result": "pass",
+            "observed": "0.012000",
+            "expected": "0.50"
+          },
+          {
+            "id": "settled",
+            "result": "pass",
+            "observed": "0xabbb36624060272b510405dc60647172507c2a8756ac738bbc76650b9e6288f2",
+            "detail": "source=x-payment-response"
+          },
+          {
+            "id": "model_matches_request",
+            "result": "pass",
+            "observed": "sha256:94d9f0da97276443ab83dd315d000eef5751916f8d4849c468859bd51b21d79f",
+            "expected": "sha256:94d9f0da97276443ab83dd315d000eef5751916f8d4849c468859bd51b21d79f",
+            "detail": "served-model source=body.model"
+          }
+        ],
+        "sessionId": "beta-4x",
+        "challenge": {
+          "scheme": "exact",
+          "network": "eip155:8453",
+          "maxAmountRequired": "2000",
+          "payTo": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+          "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          "rawHash": "bb316899de838bf761bcd9a6dfc40fbede9c9d50e81d121a3f9ed274db1aa7f5",
+          "resource": "https://blockrun.ai/api/v1/chat/completions",
+          "maxTimeoutSeconds": 300
+        },
+        "payment": {
+          "scheme": "exact",
+          "network": "eip155:8453",
+          "amountAuthorized": "2000",
+          "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          "payTo": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+          "xPaymentHash": "74d755852f962b1ef937f6452a2b78df69b59df089b4de571278789fda164175"
+        },
+        "settlement": {
+          "success": true,
+          "source": "x-payment-response",
+          "txHash": "0xabbb36624060272b510405dc60647172507c2a8756ac738bbc76650b9e6288f2",
+          "network": "eip155:8453"
+        }
+      },
+      "leafHash": "d60636dcc458a16f221e0bf3a9857e6b2b5455204b9a99df23e8bfc09e3c1d4b",
+      "proof": [
+        {
+          "hash": "c4137cad9cd9cce5af43b46a6f781662e53f5bf2e7b8540bf55429371e9b199e",
+          "side": "left"
+        },
+        {
+          "hash": "358b0093ad51ac473da12c41a807cf39eafc8756ca230b60a66e36119fb84a30",
+          "side": "right"
+        },
+        {
+          "hash": "dc622582b5c604867b99647c618917c6768b251f64cc0df42678a3e2539efd18",
+          "side": "left"
+        },
+        {
+          "hash": "35ffe170e81d0833a74e9f9616b1bd299bcc68b75c85f4a32ab706a0e3ff5eaf",
+          "side": "right"
+        }
+      ],
+      "root": "824543426df4b3e01f04a499fa5edb704667584789116d538b3a011c6581cd96",
+      "attestationId": "36dda732-d173-4d95-bfe9-8bbb77f16383",
+      "verifyUrl": "https://rubric-protocol.com/audit/36dda732-d173-4d95-bfe9-8bbb77f16383",
+      "verifyApiUrl": "https://rubric-protocol.com/v1/verify/36dda732-d173-4d95-bfe9-8bbb77f16383",
+      "envelope": {
+        "schemaVersion": "rubric.x402-attest/v1",
+        "leafType": "DATA_RECORD",
+        "root": "824543426df4b3e01f04a499fa5edb704667584789116d538b3a011c6581cd96",
+        "leafCount": 12,
+        "firstCallId": "01a0359e-6add-7000-a234-691e9b94304a",
+        "lastCallId": "01a0359e-c394-7000-95b9-3d6f16e7834d",
+        "timeRange": {
+          "from": "2026-08-24T21:12:49.629Z",
+          "to": "2026-08-24T21:13:13.754Z"
+        },
+        "subjectId": "substitution-beta",
+        "merkle": {
+          "hash": "sha256",
+          "leafPrefix": "0x00",
+          "nodePrefix": "0x01",
+          "oddNode": "promote"
+        }
+      }
+    }
+  },
+  {
+    "i": 6,
+    "model": "anthropic/claude-haiku-4.5",
+    "served": "anthropic/claude-haiku-4.5",
+    "ptok": 20,
+    "ctok": 5,
+    "ms": 2431,
+    "status": 200,
+    "err": null,
+    "quoted": "2000",
+    "callId": "01a0359e-9b4f-7000-a85a-3e4e406e7ebc",
+    "assertions": [
+      {
+        "id": "price_matches_challenge",
+        "result": "pass",
+        "observed": "2000",
+        "expected": "2000"
+      },
+      {
+        "id": "payto_matches_challenge",
+        "result": "pass",
+        "observed": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+        "expected": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf"
+      },
+      {
+        "id": "network_allowed",
+        "result": "pass",
+        "observed": "eip155:8453",
+        "expected": "eip155:8453"
+      },
+      {
+        "id": "payto_allowed",
+        "result": "unknown",
+        "observed": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+        "detail": "policy.allowedPayTo not set"
+      },
+      {
+        "id": "price_within_policy",
+        "result": "pass",
+        "observed": "0.002000",
+        "expected": "0.05"
+      },
+      {
+        "id": "budget_within_cap",
+        "result": "pass",
+        "observed": "0.014000",
+        "expected": "0.50"
+      },
+      {
+        "id": "settled",
+        "result": "pass",
+        "observed": "0x4364fd5b387c00aaed681d1ef2959e3158c31b562b8d03a75fe29e429700d699",
+        "detail": "source=x-payment-response"
+      },
+      {
+        "id": "model_matches_request",
+        "result": "pass",
+        "observed": "sha256:9122fecaae125a57d2c3fd4cdebfe891b3e30ca865a07ffe11fafad2f4b9a5aa",
+        "expected": "sha256:9122fecaae125a57d2c3fd4cdebfe891b3e30ca865a07ffe11fafad2f4b9a5aa",
+        "detail": "served-model source=body.model"
+      }
+    ],
+    "content": "attested",
+    "receipt": {
+      "callRecord": {
+        "v": 1,
+        "callId": "01a0359e-9b4f-7000-a85a-3e4e406e7ebc",
+        "subjectId": "substitution-beta",
+        "startedAt": "2026-08-24T21:13:02.031Z",
+        "endedAt": "2026-08-24T21:13:04.457Z",
+        "durationMs": 2426,
+        "request": {
+          "method": "POST",
+          "host": "blockrun.ai",
+          "path": "/api/v1/chat/completions",
+          "bodyHash": "7133a8b1887286edd3b1160419f9be6f4bcec7dc2c1ec0b3196a72ce74751bb3",
+          "bodyBytes": 166,
+          "contentType": "application/json"
+        },
+        "response": {
+          "status": 200,
+          "bodyHash": "0100e3142975f9ce9ea21882fbd4452d6a5f926dfdc43c28b60059436b97f902",
+          "bodyBytes": 301,
+          "headers": {
+            "content-type": "application/json",
+            "payment-response": "eyJzdWNjZXNzIjp0cnVlLCJ0cmFuc2FjdGlvbiI6IjB4NDM2NGZkNWIzODdjMDBhYWVkNjgxZDFlZjI5NTllMzE1OGMzMWI1NjJiOGQwM2E3NWZlMjllNDI5NzAwZDY5OSIsIm5ldHdvcmsiOiJlaXAxNTU6ODQ1MyIsInBheWVyIjoiMHg2QTc0MkFhNDBjMkEzYTVlYzZlYTczMGMzQzQ3RmNjODNDNDg3NTgzIn0="
+          }
+        },
+        "outcome": "ok",
+        "assertions": [
+          {
+            "id": "price_matches_challenge",
+            "result": "pass",
+            "observed": "2000",
+            "expected": "2000"
+          },
+          {
+            "id": "payto_matches_challenge",
+            "result": "pass",
+            "observed": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+            "expected": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf"
+          },
+          {
+            "id": "network_allowed",
+            "result": "pass",
+            "observed": "eip155:8453",
+            "expected": "eip155:8453"
+          },
+          {
+            "id": "payto_allowed",
+            "result": "unknown",
+            "observed": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+            "detail": "policy.allowedPayTo not set"
+          },
+          {
+            "id": "price_within_policy",
+            "result": "pass",
+            "observed": "0.002000",
+            "expected": "0.05"
+          },
+          {
+            "id": "budget_within_cap",
+            "result": "pass",
+            "observed": "0.014000",
+            "expected": "0.50"
+          },
+          {
+            "id": "settled",
+            "result": "pass",
+            "observed": "0x4364fd5b387c00aaed681d1ef2959e3158c31b562b8d03a75fe29e429700d699",
+            "detail": "source=x-payment-response"
+          },
+          {
+            "id": "model_matches_request",
+            "result": "pass",
+            "observed": "sha256:9122fecaae125a57d2c3fd4cdebfe891b3e30ca865a07ffe11fafad2f4b9a5aa",
+            "expected": "sha256:9122fecaae125a57d2c3fd4cdebfe891b3e30ca865a07ffe11fafad2f4b9a5aa",
+            "detail": "served-model source=body.model"
+          }
+        ],
+        "sessionId": "beta-4x",
+        "challenge": {
+          "scheme": "exact",
+          "network": "eip155:8453",
+          "maxAmountRequired": "2000",
+          "payTo": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+          "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          "rawHash": "c5bb0e6c88ec1e8f71eba30d455dc5532b37b2fe9561225b78132f5ce18406dd",
+          "resource": "https://blockrun.ai/api/v1/chat/completions",
+          "maxTimeoutSeconds": 300
+        },
+        "payment": {
+          "scheme": "exact",
+          "network": "eip155:8453",
+          "amountAuthorized": "2000",
+          "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          "payTo": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+          "xPaymentHash": "57df00c9752db7a2d5a24b3d133b142dec8a895c1dc4946c25f76e40a65db3d0"
+        },
+        "settlement": {
+          "success": true,
+          "source": "x-payment-response",
+          "txHash": "0x4364fd5b387c00aaed681d1ef2959e3158c31b562b8d03a75fe29e429700d699",
+          "network": "eip155:8453"
+        }
+      },
+      "leafHash": "d46d9d40ab2d5e19670950cb2cab94681e7fd6a029e8477e7daa319cebd0e07d",
+      "proof": [
+        {
+          "hash": "88b71982c7efcc7d37803247e2eabac0a8e92ba72baa605e33a60b46db75a4a6",
+          "side": "right"
+        },
+        {
+          "hash": "73a1bcf3f613df8e5aadfd0987651036dbdaf821369beb612a3500576dd43e8c",
+          "side": "left"
+        },
+        {
+          "hash": "dc622582b5c604867b99647c618917c6768b251f64cc0df42678a3e2539efd18",
+          "side": "left"
+        },
+        {
+          "hash": "35ffe170e81d0833a74e9f9616b1bd299bcc68b75c85f4a32ab706a0e3ff5eaf",
+          "side": "right"
+        }
+      ],
+      "root": "824543426df4b3e01f04a499fa5edb704667584789116d538b3a011c6581cd96",
+      "attestationId": "36dda732-d173-4d95-bfe9-8bbb77f16383",
+      "verifyUrl": "https://rubric-protocol.com/audit/36dda732-d173-4d95-bfe9-8bbb77f16383",
+      "verifyApiUrl": "https://rubric-protocol.com/v1/verify/36dda732-d173-4d95-bfe9-8bbb77f16383",
+      "envelope": {
+        "schemaVersion": "rubric.x402-attest/v1",
+        "leafType": "DATA_RECORD",
+        "root": "824543426df4b3e01f04a499fa5edb704667584789116d538b3a011c6581cd96",
+        "leafCount": 12,
+        "firstCallId": "01a0359e-6add-7000-a234-691e9b94304a",
+        "lastCallId": "01a0359e-c394-7000-95b9-3d6f16e7834d",
+        "timeRange": {
+          "from": "2026-08-24T21:12:49.629Z",
+          "to": "2026-08-24T21:13:13.754Z"
+        },
+        "subjectId": "substitution-beta",
+        "merkle": {
+          "hash": "sha256",
+          "leafPrefix": "0x00",
+          "nodePrefix": "0x01",
+          "oddNode": "promote"
+        }
+      }
+    }
+  },
+  {
+    "i": 7,
+    "model": "google/gemini-2.5-flash",
+    "served": "google/gemini-2.5-flash",
+    "ptok": 13,
+    "ctok": 2,
+    "ms": 1487,
+    "status": 200,
+    "err": null,
+    "quoted": "2000",
+    "callId": "01a0359e-a4ce-7000-a439-b1b07466d358",
+    "assertions": [
+      {
+        "id": "price_matches_challenge",
+        "result": "pass",
+        "observed": "2000",
+        "expected": "2000"
+      },
+      {
+        "id": "payto_matches_challenge",
+        "result": "pass",
+        "observed": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+        "expected": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf"
+      },
+      {
+        "id": "network_allowed",
+        "result": "pass",
+        "observed": "eip155:8453",
+        "expected": "eip155:8453"
+      },
+      {
+        "id": "payto_allowed",
+        "result": "unknown",
+        "observed": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+        "detail": "policy.allowedPayTo not set"
+      },
+      {
+        "id": "price_within_policy",
+        "result": "pass",
+        "observed": "0.002000",
+        "expected": "0.05"
+      },
+      {
+        "id": "budget_within_cap",
+        "result": "pass",
+        "observed": "0.016000",
+        "expected": "0.50"
+      },
+      {
+        "id": "settled",
+        "result": "pass",
+        "observed": "0xed1efbcbfe0292ec0c8b9a3d1d3c733a7da878f8afb9ef3f2130ecacd6460c11",
+        "detail": "source=x-payment-response"
+      },
+      {
+        "id": "model_matches_request",
+        "result": "pass",
+        "observed": "sha256:cd62f9d5ea30935dafdf7850f2035a007b1ccc1920abf400c4410ceb68d795e5",
+        "expected": "sha256:cd62f9d5ea30935dafdf7850f2035a007b1ccc1920abf400c4410ceb68d795e5",
+        "detail": "served-model source=body.model"
+      }
+    ],
+    "content": "attested",
+    "receipt": {
+      "callRecord": {
+        "v": 1,
+        "callId": "01a0359e-a4ce-7000-a439-b1b07466d358",
+        "subjectId": "substitution-beta",
+        "startedAt": "2026-08-24T21:13:04.462Z",
+        "endedAt": "2026-08-24T21:13:05.946Z",
+        "durationMs": 1484,
+        "request": {
+          "method": "POST",
+          "host": "blockrun.ai",
+          "path": "/api/v1/chat/completions",
+          "bodyHash": "42e7e5f5f05146733570dde9aa9637d72287509caecfcc68b1639c66263100fe",
+          "bodyBytes": 163,
+          "contentType": "application/json"
+        },
+        "response": {
+          "status": 200,
+          "bodyHash": "27e3113cb1aa14a6535c1f3842dfd60fb7df99e74acdc8543b768a2989e14ed2",
+          "bodyBytes": 279,
+          "headers": {
+            "content-type": "application/json",
+            "payment-response": "eyJzdWNjZXNzIjp0cnVlLCJ0cmFuc2FjdGlvbiI6IjB4ZWQxZWZiY2JmZTAyOTJlYzBjOGI5YTNkMWQzYzczM2E3ZGE4NzhmOGFmYjllZjNmMjEzMGVjYWNkNjQ2MGMxMSIsIm5ldHdvcmsiOiJlaXAxNTU6ODQ1MyIsInBheWVyIjoiMHg2QTc0MkFhNDBjMkEzYTVlYzZlYTczMGMzQzQ3RmNjODNDNDg3NTgzIn0="
+          }
+        },
+        "outcome": "ok",
+        "assertions": [
+          {
+            "id": "price_matches_challenge",
+            "result": "pass",
+            "observed": "2000",
+            "expected": "2000"
+          },
+          {
+            "id": "payto_matches_challenge",
+            "result": "pass",
+            "observed": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+            "expected": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf"
+          },
+          {
+            "id": "network_allowed",
+            "result": "pass",
+            "observed": "eip155:8453",
+            "expected": "eip155:8453"
+          },
+          {
+            "id": "payto_allowed",
+            "result": "unknown",
+            "observed": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+            "detail": "policy.allowedPayTo not set"
+          },
+          {
+            "id": "price_within_policy",
+            "result": "pass",
+            "observed": "0.002000",
+            "expected": "0.05"
+          },
+          {
+            "id": "budget_within_cap",
+            "result": "pass",
+            "observed": "0.016000",
+            "expected": "0.50"
+          },
+          {
+            "id": "settled",
+            "result": "pass",
+            "observed": "0xed1efbcbfe0292ec0c8b9a3d1d3c733a7da878f8afb9ef3f2130ecacd6460c11",
+            "detail": "source=x-payment-response"
+          },
+          {
+            "id": "model_matches_request",
+            "result": "pass",
+            "observed": "sha256:cd62f9d5ea30935dafdf7850f2035a007b1ccc1920abf400c4410ceb68d795e5",
+            "expected": "sha256:cd62f9d5ea30935dafdf7850f2035a007b1ccc1920abf400c4410ceb68d795e5",
+            "detail": "served-model source=body.model"
+          }
+        ],
+        "sessionId": "beta-4x",
+        "challenge": {
+          "scheme": "exact",
+          "network": "eip155:8453",
+          "maxAmountRequired": "2000",
+          "payTo": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+          "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          "rawHash": "066c90815a6c39993418525a4169005a1eee0fe4d3399688271267510ca35ff2",
+          "resource": "https://blockrun.ai/api/v1/chat/completions",
+          "maxTimeoutSeconds": 300
+        },
+        "payment": {
+          "scheme": "exact",
+          "network": "eip155:8453",
+          "amountAuthorized": "2000",
+          "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          "payTo": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+          "xPaymentHash": "692f1d4e3c0277cf2d10458bafb27a2ad66a5d8803f38ccf5b051d319df52839"
+        },
+        "settlement": {
+          "success": true,
+          "source": "x-payment-response",
+          "txHash": "0xed1efbcbfe0292ec0c8b9a3d1d3c733a7da878f8afb9ef3f2130ecacd6460c11",
+          "network": "eip155:8453"
+        }
+      },
+      "leafHash": "0d3f1e67cba16005a321e4da666722469565738f91d9728d4eab05159d732a7c",
+      "proof": [
+        {
+          "hash": "36505a5d2e08abf4a795458b9ea3cda595b374704b9bae4af27436462308c72c",
+          "side": "left"
+        },
+        {
+          "hash": "73a1bcf3f613df8e5aadfd0987651036dbdaf821369beb612a3500576dd43e8c",
+          "side": "left"
+        },
+        {
+          "hash": "dc622582b5c604867b99647c618917c6768b251f64cc0df42678a3e2539efd18",
+          "side": "left"
+        },
+        {
+          "hash": "35ffe170e81d0833a74e9f9616b1bd299bcc68b75c85f4a32ab706a0e3ff5eaf",
+          "side": "right"
+        }
+      ],
+      "root": "824543426df4b3e01f04a499fa5edb704667584789116d538b3a011c6581cd96",
+      "attestationId": "36dda732-d173-4d95-bfe9-8bbb77f16383",
+      "verifyUrl": "https://rubric-protocol.com/audit/36dda732-d173-4d95-bfe9-8bbb77f16383",
+      "verifyApiUrl": "https://rubric-protocol.com/v1/verify/36dda732-d173-4d95-bfe9-8bbb77f16383",
+      "envelope": {
+        "schemaVersion": "rubric.x402-attest/v1",
+        "leafType": "DATA_RECORD",
+        "root": "824543426df4b3e01f04a499fa5edb704667584789116d538b3a011c6581cd96",
+        "leafCount": 12,
+        "firstCallId": "01a0359e-6add-7000-a234-691e9b94304a",
+        "lastCallId": "01a0359e-c394-7000-95b9-3d6f16e7834d",
+        "timeRange": {
+          "from": "2026-08-24T21:12:49.629Z",
+          "to": "2026-08-24T21:13:13.754Z"
+        },
+        "subjectId": "substitution-beta",
+        "merkle": {
+          "hash": "sha256",
+          "leafPrefix": "0x00",
+          "nodePrefix": "0x01",
+          "oddNode": "promote"
+        }
+      }
+    }
+  },
+  {
+    "i": 8,
+    "model": "openai/gpt-5.5",
+    "served": "openai/gpt-5.5",
+    "ptok": 19,
+    "ctok": 19,
+    "ms": 2605,
+    "status": 200,
+    "err": null,
+    "quoted": "2000",
+    "callId": "01a0359e-aa9e-7000-857a-b2279ed55567",
+    "assertions": [
+      {
+        "id": "price_matches_challenge",
+        "result": "pass",
+        "observed": "2000",
+        "expected": "2000"
+      },
+      {
+        "id": "payto_matches_challenge",
+        "result": "pass",
+        "observed": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+        "expected": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf"
+      },
+      {
+        "id": "network_allowed",
+        "result": "pass",
+        "observed": "eip155:8453",
+        "expected": "eip155:8453"
+      },
+      {
+        "id": "payto_allowed",
+        "result": "unknown",
+        "observed": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+        "detail": "policy.allowedPayTo not set"
+      },
+      {
+        "id": "price_within_policy",
+        "result": "pass",
+        "observed": "0.002000",
+        "expected": "0.05"
+      },
+      {
+        "id": "budget_within_cap",
+        "result": "pass",
+        "observed": "0.018000",
+        "expected": "0.50"
+      },
+      {
+        "id": "settled",
+        "result": "pass",
+        "observed": "0x50039e270dac5601ee353bb8439504e3cab304194934893704a1da8b3870186c",
+        "detail": "source=x-payment-response"
+      },
+      {
+        "id": "model_matches_request",
+        "result": "pass",
+        "observed": "sha256:9a8f4a62b182ff6404e9604b2c58fb21389ac2f26e866f792969469da276a02f",
+        "expected": "sha256:9a8f4a62b182ff6404e9604b2c58fb21389ac2f26e866f792969469da276a02f",
+        "detail": "served-model source=body.model"
+      }
+    ],
+    "content": "attested",
+    "receipt": {
+      "callRecord": {
+        "v": 1,
+        "callId": "01a0359e-aa9e-7000-857a-b2279ed55567",
+        "subjectId": "substitution-beta",
+        "startedAt": "2026-08-24T21:13:05.950Z",
+        "endedAt": "2026-08-24T21:13:08.549Z",
+        "durationMs": 2599,
+        "request": {
+          "method": "POST",
+          "host": "blockrun.ai",
+          "path": "/api/v1/chat/completions",
+          "bodyHash": "96d01edabba7730051c71f297b67d4eceb88b43f61095cd0f76f8ebc3452583f",
+          "bodyBytes": 154,
+          "contentType": "application/json"
+        },
+        "response": {
+          "status": 200,
+          "bodyHash": "e3aea69252455c4e138ca094fd4e240a322e2c3a9299d9f168e7ffa1061523f3",
+          "bodyBytes": 480,
+          "headers": {
+            "content-type": "application/json",
+            "payment-response": "eyJzdWNjZXNzIjp0cnVlLCJ0cmFuc2FjdGlvbiI6IjB4NTAwMzllMjcwZGFjNTYwMWVlMzUzYmI4NDM5NTA0ZTNjYWIzMDQxOTQ5MzQ4OTM3MDRhMWRhOGIzODcwMTg2YyIsIm5ldHdvcmsiOiJlaXAxNTU6ODQ1MyIsInBheWVyIjoiMHg2QTc0MkFhNDBjMkEzYTVlYzZlYTczMGMzQzQ3RmNjODNDNDg3NTgzIn0="
+          }
+        },
+        "outcome": "ok",
+        "assertions": [
+          {
+            "id": "price_matches_challenge",
+            "result": "pass",
+            "observed": "2000",
+            "expected": "2000"
+          },
+          {
+            "id": "payto_matches_challenge",
+            "result": "pass",
+            "observed": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+            "expected": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf"
+          },
+          {
+            "id": "network_allowed",
+            "result": "pass",
+            "observed": "eip155:8453",
+            "expected": "eip155:8453"
+          },
+          {
+            "id": "payto_allowed",
+            "result": "unknown",
+            "observed": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+            "detail": "policy.allowedPayTo not set"
+          },
+          {
+            "id": "price_within_policy",
+            "result": "pass",
+            "observed": "0.002000",
+            "expected": "0.05"
+          },
+          {
+            "id": "budget_within_cap",
+            "result": "pass",
+            "observed": "0.018000",
+            "expected": "0.50"
+          },
+          {
+            "id": "settled",
+            "result": "pass",
+            "observed": "0x50039e270dac5601ee353bb8439504e3cab304194934893704a1da8b3870186c",
+            "detail": "source=x-payment-response"
+          },
+          {
+            "id": "model_matches_request",
+            "result": "pass",
+            "observed": "sha256:9a8f4a62b182ff6404e9604b2c58fb21389ac2f26e866f792969469da276a02f",
+            "expected": "sha256:9a8f4a62b182ff6404e9604b2c58fb21389ac2f26e866f792969469da276a02f",
+            "detail": "served-model source=body.model"
+          }
+        ],
+        "sessionId": "beta-4x",
+        "challenge": {
+          "scheme": "exact",
+          "network": "eip155:8453",
+          "maxAmountRequired": "2000",
+          "payTo": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+          "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          "rawHash": "b9d0ef7de5b3067caef5f3acb1e4232d6b10cfc2b60b107c7286b701337d1607",
+          "resource": "https://blockrun.ai/api/v1/chat/completions",
+          "maxTimeoutSeconds": 300
+        },
+        "payment": {
+          "scheme": "exact",
+          "network": "eip155:8453",
+          "amountAuthorized": "2000",
+          "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          "payTo": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+          "xPaymentHash": "a9ca399e5814b1776654161455935f30533a90ecceadcf208650cd8486ce7d77"
+        },
+        "settlement": {
+          "success": true,
+          "source": "x-payment-response",
+          "txHash": "0x50039e270dac5601ee353bb8439504e3cab304194934893704a1da8b3870186c",
+          "network": "eip155:8453"
+        }
+      },
+      "leafHash": "8e8b3ffcf576ffb2d44242b7208ecf02c0da76987a0615e660293b03d48cd6c4",
+      "proof": [
+        {
+          "hash": "860e13e4aa63cac723e33e3401a257d35da26dd21d5d0df1c5f9849125313261",
+          "side": "right"
+        },
+        {
+          "hash": "cd0e724f66da2d2e47bf980c0e8120fac654370a1b7047f2a1786c4cbb9adae9",
+          "side": "right"
+        },
+        {
+          "hash": "8e97b133419a8b3d625a4b963754a239437c124c44e826c22d1601511ce912be",
+          "side": "left"
+        }
+      ],
+      "root": "824543426df4b3e01f04a499fa5edb704667584789116d538b3a011c6581cd96",
+      "attestationId": "36dda732-d173-4d95-bfe9-8bbb77f16383",
+      "verifyUrl": "https://rubric-protocol.com/audit/36dda732-d173-4d95-bfe9-8bbb77f16383",
+      "verifyApiUrl": "https://rubric-protocol.com/v1/verify/36dda732-d173-4d95-bfe9-8bbb77f16383",
+      "envelope": {
+        "schemaVersion": "rubric.x402-attest/v1",
+        "leafType": "DATA_RECORD",
+        "root": "824543426df4b3e01f04a499fa5edb704667584789116d538b3a011c6581cd96",
+        "leafCount": 12,
+        "firstCallId": "01a0359e-6add-7000-a234-691e9b94304a",
+        "lastCallId": "01a0359e-c394-7000-95b9-3d6f16e7834d",
+        "timeRange": {
+          "from": "2026-08-24T21:12:49.629Z",
+          "to": "2026-08-24T21:13:13.754Z"
+        },
+        "subjectId": "substitution-beta",
+        "merkle": {
+          "hash": "sha256",
+          "leafPrefix": "0x00",
+          "nodePrefix": "0x01",
+          "oddNode": "promote"
+        }
+      }
+    }
+  },
+  {
+    "i": 9,
+    "model": "openai/gpt-4o-mini",
+    "served": "openai/gpt-4o-mini",
+    "ptok": 20,
+    "ctok": 3,
+    "ms": 1825,
+    "status": 200,
+    "err": null,
+    "quoted": "2000",
+    "callId": "01a0359e-b4cb-7000-8500-4b2212a7b634",
+    "assertions": [
+      {
+        "id": "price_matches_challenge",
+        "result": "pass",
+        "observed": "2000",
+        "expected": "2000"
+      },
+      {
+        "id": "payto_matches_challenge",
+        "result": "pass",
+        "observed": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+        "expected": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf"
+      },
+      {
+        "id": "network_allowed",
+        "result": "pass",
+        "observed": "eip155:8453",
+        "expected": "eip155:8453"
+      },
+      {
+        "id": "payto_allowed",
+        "result": "unknown",
+        "observed": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+        "detail": "policy.allowedPayTo not set"
+      },
+      {
+        "id": "price_within_policy",
+        "result": "pass",
+        "observed": "0.002000",
+        "expected": "0.05"
+      },
+      {
+        "id": "budget_within_cap",
+        "result": "pass",
+        "observed": "0.020000",
+        "expected": "0.50"
+      },
+      {
+        "id": "settled",
+        "result": "pass",
+        "observed": "0xcc908167f53ba686bfd23df6123ce556d6affd20bc552728fae9285c4eba4871",
+        "detail": "source=x-payment-response"
+      },
+      {
+        "id": "model_matches_request",
+        "result": "pass",
+        "observed": "sha256:94d9f0da97276443ab83dd315d000eef5751916f8d4849c468859bd51b21d79f",
+        "expected": "sha256:94d9f0da97276443ab83dd315d000eef5751916f8d4849c468859bd51b21d79f",
+        "detail": "served-model source=body.model"
+      }
+    ],
+    "content": "Verified.",
+    "receipt": {
+      "callRecord": {
+        "v": 1,
+        "callId": "01a0359e-b4cb-7000-8500-4b2212a7b634",
+        "subjectId": "substitution-beta",
+        "startedAt": "2026-08-24T21:13:08.555Z",
+        "endedAt": "2026-08-24T21:13:10.375Z",
+        "durationMs": 1820,
+        "request": {
+          "method": "POST",
+          "host": "blockrun.ai",
+          "path": "/api/v1/chat/completions",
+          "bodyHash": "41262fd34a62f699a9cca6303e20c9c63161a44a9a2d80e4b74c5ca53e17bbf4",
+          "bodyBytes": 158,
+          "contentType": "application/json"
+        },
+        "response": {
+          "status": 200,
+          "bodyHash": "772ff870b1747237e7dc13a9121924f590fd2653482ed8127cb5e5e873e16a8a",
+          "bodyBytes": 484,
+          "headers": {
+            "content-type": "application/json",
+            "payment-response": "eyJzdWNjZXNzIjp0cnVlLCJ0cmFuc2FjdGlvbiI6IjB4Y2M5MDgxNjdmNTNiYTY4NmJmZDIzZGY2MTIzY2U1NTZkNmFmZmQyMGJjNTUyNzI4ZmFlOTI4NWM0ZWJhNDg3MSIsIm5ldHdvcmsiOiJlaXAxNTU6ODQ1MyIsInBheWVyIjoiMHg2QTc0MkFhNDBjMkEzYTVlYzZlYTczMGMzQzQ3RmNjODNDNDg3NTgzIn0="
+          }
+        },
+        "outcome": "ok",
+        "assertions": [
+          {
+            "id": "price_matches_challenge",
+            "result": "pass",
+            "observed": "2000",
+            "expected": "2000"
+          },
+          {
+            "id": "payto_matches_challenge",
+            "result": "pass",
+            "observed": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+            "expected": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf"
+          },
+          {
+            "id": "network_allowed",
+            "result": "pass",
+            "observed": "eip155:8453",
+            "expected": "eip155:8453"
+          },
+          {
+            "id": "payto_allowed",
+            "result": "unknown",
+            "observed": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+            "detail": "policy.allowedPayTo not set"
+          },
+          {
+            "id": "price_within_policy",
+            "result": "pass",
+            "observed": "0.002000",
+            "expected": "0.05"
+          },
+          {
+            "id": "budget_within_cap",
+            "result": "pass",
+            "observed": "0.020000",
+            "expected": "0.50"
+          },
+          {
+            "id": "settled",
+            "result": "pass",
+            "observed": "0xcc908167f53ba686bfd23df6123ce556d6affd20bc552728fae9285c4eba4871",
+            "detail": "source=x-payment-response"
+          },
+          {
+            "id": "model_matches_request",
+            "result": "pass",
+            "observed": "sha256:94d9f0da97276443ab83dd315d000eef5751916f8d4849c468859bd51b21d79f",
+            "expected": "sha256:94d9f0da97276443ab83dd315d000eef5751916f8d4849c468859bd51b21d79f",
+            "detail": "served-model source=body.model"
+          }
+        ],
+        "sessionId": "beta-4x",
+        "challenge": {
+          "scheme": "exact",
+          "network": "eip155:8453",
+          "maxAmountRequired": "2000",
+          "payTo": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+          "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          "rawHash": "bb316899de838bf761bcd9a6dfc40fbede9c9d50e81d121a3f9ed274db1aa7f5",
+          "resource": "https://blockrun.ai/api/v1/chat/completions",
+          "maxTimeoutSeconds": 300
+        },
+        "payment": {
+          "scheme": "exact",
+          "network": "eip155:8453",
+          "amountAuthorized": "2000",
+          "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          "payTo": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+          "xPaymentHash": "5d9510e646bd68c2e0c8d30dace4c7fef2e58593bacf22dee15bc0992e800c6c"
+        },
+        "settlement": {
+          "success": true,
+          "source": "x-payment-response",
+          "txHash": "0xcc908167f53ba686bfd23df6123ce556d6affd20bc552728fae9285c4eba4871",
+          "network": "eip155:8453"
+        }
+      },
+      "leafHash": "b5337cc3df005ab35273f3eeaddabdb594298128f20ee46fe9465f5e83a7c030",
+      "proof": [
+        {
+          "hash": "3fef594afb9edaa7f7bd47d9704bfaa7a03dd8ab41bc9090a91bc4585745989b",
+          "side": "left"
+        },
+        {
+          "hash": "cd0e724f66da2d2e47bf980c0e8120fac654370a1b7047f2a1786c4cbb9adae9",
+          "side": "right"
+        },
+        {
+          "hash": "8e97b133419a8b3d625a4b963754a239437c124c44e826c22d1601511ce912be",
+          "side": "left"
+        }
+      ],
+      "root": "824543426df4b3e01f04a499fa5edb704667584789116d538b3a011c6581cd96",
+      "attestationId": "36dda732-d173-4d95-bfe9-8bbb77f16383",
+      "verifyUrl": "https://rubric-protocol.com/audit/36dda732-d173-4d95-bfe9-8bbb77f16383",
+      "verifyApiUrl": "https://rubric-protocol.com/v1/verify/36dda732-d173-4d95-bfe9-8bbb77f16383",
+      "envelope": {
+        "schemaVersion": "rubric.x402-attest/v1",
+        "leafType": "DATA_RECORD",
+        "root": "824543426df4b3e01f04a499fa5edb704667584789116d538b3a011c6581cd96",
+        "leafCount": 12,
+        "firstCallId": "01a0359e-6add-7000-a234-691e9b94304a",
+        "lastCallId": "01a0359e-c394-7000-95b9-3d6f16e7834d",
+        "timeRange": {
+          "from": "2026-08-24T21:12:49.629Z",
+          "to": "2026-08-24T21:13:13.754Z"
+        },
+        "subjectId": "substitution-beta",
+        "merkle": {
+          "hash": "sha256",
+          "leafPrefix": "0x00",
+          "nodePrefix": "0x01",
+          "oddNode": "promote"
+        }
+      }
+    }
+  },
+  {
+    "i": 10,
+    "model": "anthropic/claude-haiku-4.5",
+    "served": "anthropic/claude-haiku-4.5",
+    "ptok": 20,
+    "ctok": 5,
+    "ms": 1959,
+    "status": 200,
+    "err": null,
+    "quoted": "2000",
+    "callId": "01a0359e-bbec-7000-9834-8eb9251e52b0",
+    "assertions": [
+      {
+        "id": "price_matches_challenge",
+        "result": "pass",
+        "observed": "2000",
+        "expected": "2000"
+      },
+      {
+        "id": "payto_matches_challenge",
+        "result": "pass",
+        "observed": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+        "expected": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf"
+      },
+      {
+        "id": "network_allowed",
+        "result": "pass",
+        "observed": "eip155:8453",
+        "expected": "eip155:8453"
+      },
+      {
+        "id": "payto_allowed",
+        "result": "unknown",
+        "observed": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+        "detail": "policy.allowedPayTo not set"
+      },
+      {
+        "id": "price_within_policy",
+        "result": "pass",
+        "observed": "0.002000",
+        "expected": "0.05"
+      },
+      {
+        "id": "budget_within_cap",
+        "result": "pass",
+        "observed": "0.022000",
+        "expected": "0.50"
+      },
+      {
+        "id": "settled",
+        "result": "pass",
+        "observed": "0x9adc9c1664feb67a22a40e8f03282671e4caa607ee19cb2bcaa07c2785a2bcad",
+        "detail": "source=x-payment-response"
+      },
+      {
+        "id": "model_matches_request",
+        "result": "pass",
+        "observed": "sha256:9122fecaae125a57d2c3fd4cdebfe891b3e30ca865a07ffe11fafad2f4b9a5aa",
+        "expected": "sha256:9122fecaae125a57d2c3fd4cdebfe891b3e30ca865a07ffe11fafad2f4b9a5aa",
+        "detail": "served-model source=body.model"
+      }
+    ],
+    "content": "attested",
+    "receipt": {
+      "callRecord": {
+        "v": 1,
+        "callId": "01a0359e-bbec-7000-9834-8eb9251e52b0",
+        "subjectId": "substitution-beta",
+        "startedAt": "2026-08-24T21:13:10.380Z",
+        "endedAt": "2026-08-24T21:13:12.333Z",
+        "durationMs": 1953,
+        "request": {
+          "method": "POST",
+          "host": "blockrun.ai",
+          "path": "/api/v1/chat/completions",
+          "bodyHash": "7133a8b1887286edd3b1160419f9be6f4bcec7dc2c1ec0b3196a72ce74751bb3",
+          "bodyBytes": 166,
+          "contentType": "application/json"
+        },
+        "response": {
+          "status": 200,
+          "bodyHash": "c2978471b831f8136ec82ef8f67514f9303941833d0ae48eec53675204ea0579",
+          "bodyBytes": 301,
+          "headers": {
+            "content-type": "application/json",
+            "payment-response": "eyJzdWNjZXNzIjp0cnVlLCJ0cmFuc2FjdGlvbiI6IjB4OWFkYzljMTY2NGZlYjY3YTIyYTQwZThmMDMyODI2NzFlNGNhYTYwN2VlMTljYjJiY2FhMDdjMjc4NWEyYmNhZCIsIm5ldHdvcmsiOiJlaXAxNTU6ODQ1MyIsInBheWVyIjoiMHg2QTc0MkFhNDBjMkEzYTVlYzZlYTczMGMzQzQ3RmNjODNDNDg3NTgzIn0="
+          }
+        },
+        "outcome": "ok",
+        "assertions": [
+          {
+            "id": "price_matches_challenge",
+            "result": "pass",
+            "observed": "2000",
+            "expected": "2000"
+          },
+          {
+            "id": "payto_matches_challenge",
+            "result": "pass",
+            "observed": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+            "expected": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf"
+          },
+          {
+            "id": "network_allowed",
+            "result": "pass",
+            "observed": "eip155:8453",
+            "expected": "eip155:8453"
+          },
+          {
+            "id": "payto_allowed",
+            "result": "unknown",
+            "observed": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+            "detail": "policy.allowedPayTo not set"
+          },
+          {
+            "id": "price_within_policy",
+            "result": "pass",
+            "observed": "0.002000",
+            "expected": "0.05"
+          },
+          {
+            "id": "budget_within_cap",
+            "result": "pass",
+            "observed": "0.022000",
+            "expected": "0.50"
+          },
+          {
+            "id": "settled",
+            "result": "pass",
+            "observed": "0x9adc9c1664feb67a22a40e8f03282671e4caa607ee19cb2bcaa07c2785a2bcad",
+            "detail": "source=x-payment-response"
+          },
+          {
+            "id": "model_matches_request",
+            "result": "pass",
+            "observed": "sha256:9122fecaae125a57d2c3fd4cdebfe891b3e30ca865a07ffe11fafad2f4b9a5aa",
+            "expected": "sha256:9122fecaae125a57d2c3fd4cdebfe891b3e30ca865a07ffe11fafad2f4b9a5aa",
+            "detail": "served-model source=body.model"
+          }
+        ],
+        "sessionId": "beta-4x",
+        "challenge": {
+          "scheme": "exact",
+          "network": "eip155:8453",
+          "maxAmountRequired": "2000",
+          "payTo": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+          "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          "rawHash": "c5bb0e6c88ec1e8f71eba30d455dc5532b37b2fe9561225b78132f5ce18406dd",
+          "resource": "https://blockrun.ai/api/v1/chat/completions",
+          "maxTimeoutSeconds": 300
+        },
+        "payment": {
+          "scheme": "exact",
+          "network": "eip155:8453",
+          "amountAuthorized": "2000",
+          "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          "payTo": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+          "xPaymentHash": "6f7b94df76385cd9f5295566692d2db22f513957db70db6b1be34abd34bf1f39"
+        },
+        "settlement": {
+          "success": true,
+          "source": "x-payment-response",
+          "txHash": "0x9adc9c1664feb67a22a40e8f03282671e4caa607ee19cb2bcaa07c2785a2bcad",
+          "network": "eip155:8453"
+        }
+      },
+      "leafHash": "72fabbb2a57f74bc37a717f8f5e877bbd22d2c170bbac8bc35be0513cdbf6601",
+      "proof": [
+        {
+          "hash": "037bea2563973f081c375fcc3f3e2eb254ae99b7df6b08fc6f9e7ac976aa2ee0",
+          "side": "right"
+        },
+        {
+          "hash": "2c09f0e0937ec080ab4b134fe329dd7e547a3bec10915ff4d5220f1192307fd9",
+          "side": "left"
+        },
+        {
+          "hash": "8e97b133419a8b3d625a4b963754a239437c124c44e826c22d1601511ce912be",
+          "side": "left"
+        }
+      ],
+      "root": "824543426df4b3e01f04a499fa5edb704667584789116d538b3a011c6581cd96",
+      "attestationId": "36dda732-d173-4d95-bfe9-8bbb77f16383",
+      "verifyUrl": "https://rubric-protocol.com/audit/36dda732-d173-4d95-bfe9-8bbb77f16383",
+      "verifyApiUrl": "https://rubric-protocol.com/v1/verify/36dda732-d173-4d95-bfe9-8bbb77f16383",
+      "envelope": {
+        "schemaVersion": "rubric.x402-attest/v1",
+        "leafType": "DATA_RECORD",
+        "root": "824543426df4b3e01f04a499fa5edb704667584789116d538b3a011c6581cd96",
+        "leafCount": 12,
+        "firstCallId": "01a0359e-6add-7000-a234-691e9b94304a",
+        "lastCallId": "01a0359e-c394-7000-95b9-3d6f16e7834d",
+        "timeRange": {
+          "from": "2026-08-24T21:12:49.629Z",
+          "to": "2026-08-24T21:13:13.754Z"
+        },
+        "subjectId": "substitution-beta",
+        "merkle": {
+          "hash": "sha256",
+          "leafPrefix": "0x00",
+          "nodePrefix": "0x01",
+          "oddNode": "promote"
+        }
+      }
+    }
+  },
+  {
+    "i": 11,
+    "model": "google/gemini-2.5-flash",
+    "served": "google/gemini-2.5-flash",
+    "ptok": 13,
+    "ctok": 2,
+    "ms": 1419,
+    "status": 200,
+    "err": null,
+    "quoted": "2000",
+    "callId": "01a0359e-c394-7000-95b9-3d6f16e7834d",
+    "assertions": [
+      {
+        "id": "price_matches_challenge",
+        "result": "pass",
+        "observed": "2000",
+        "expected": "2000"
+      },
+      {
+        "id": "payto_matches_challenge",
+        "result": "pass",
+        "observed": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+        "expected": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf"
+      },
+      {
+        "id": "network_allowed",
+        "result": "pass",
+        "observed": "eip155:8453",
+        "expected": "eip155:8453"
+      },
+      {
+        "id": "payto_allowed",
+        "result": "unknown",
+        "observed": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+        "detail": "policy.allowedPayTo not set"
+      },
+      {
+        "id": "price_within_policy",
+        "result": "pass",
+        "observed": "0.002000",
+        "expected": "0.05"
+      },
+      {
+        "id": "budget_within_cap",
+        "result": "pass",
+        "observed": "0.024000",
+        "expected": "0.50"
+      },
+      {
+        "id": "settled",
+        "result": "pass",
+        "observed": "0xdb90cbfcad7b75b59927ae9845f2a34357a0646461747b7537a77e0b84a0d56a",
+        "detail": "source=x-payment-response"
+      },
+      {
+        "id": "model_matches_request",
+        "result": "pass",
+        "observed": "sha256:cd62f9d5ea30935dafdf7850f2035a007b1ccc1920abf400c4410ceb68d795e5",
+        "expected": "sha256:cd62f9d5ea30935dafdf7850f2035a007b1ccc1920abf400c4410ceb68d795e5",
+        "detail": "served-model source=body.model"
+      }
+    ],
+    "content": "attested",
+    "receipt": {
+      "callRecord": {
+        "v": 1,
+        "callId": "01a0359e-c394-7000-95b9-3d6f16e7834d",
+        "subjectId": "substitution-beta",
+        "startedAt": "2026-08-24T21:13:12.340Z",
+        "endedAt": "2026-08-24T21:13:13.754Z",
+        "durationMs": 1414,
+        "request": {
+          "method": "POST",
+          "host": "blockrun.ai",
+          "path": "/api/v1/chat/completions",
+          "bodyHash": "42e7e5f5f05146733570dde9aa9637d72287509caecfcc68b1639c66263100fe",
+          "bodyBytes": 163,
+          "contentType": "application/json"
+        },
+        "response": {
+          "status": 200,
+          "bodyHash": "e2967b9cda4489cfb1ef6b49420b34d044d008da567f35bbd3b028a2f35380c6",
+          "bodyBytes": 279,
+          "headers": {
+            "content-type": "application/json",
+            "payment-response": "eyJzdWNjZXNzIjp0cnVlLCJ0cmFuc2FjdGlvbiI6IjB4ZGI5MGNiZmNhZDdiNzViNTk5MjdhZTk4NDVmMmEzNDM1N2EwNjQ2NDYxNzQ3Yjc1MzdhNzdlMGI4NGEwZDU2YSIsIm5ldHdvcmsiOiJlaXAxNTU6ODQ1MyIsInBheWVyIjoiMHg2QTc0MkFhNDBjMkEzYTVlYzZlYTczMGMzQzQ3RmNjODNDNDg3NTgzIn0="
+          }
+        },
+        "outcome": "ok",
+        "assertions": [
+          {
+            "id": "price_matches_challenge",
+            "result": "pass",
+            "observed": "2000",
+            "expected": "2000"
+          },
+          {
+            "id": "payto_matches_challenge",
+            "result": "pass",
+            "observed": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+            "expected": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf"
+          },
+          {
+            "id": "network_allowed",
+            "result": "pass",
+            "observed": "eip155:8453",
+            "expected": "eip155:8453"
+          },
+          {
+            "id": "payto_allowed",
+            "result": "unknown",
+            "observed": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+            "detail": "policy.allowedPayTo not set"
+          },
+          {
+            "id": "price_within_policy",
+            "result": "pass",
+            "observed": "0.002000",
+            "expected": "0.05"
+          },
+          {
+            "id": "budget_within_cap",
+            "result": "pass",
+            "observed": "0.024000",
+            "expected": "0.50"
+          },
+          {
+            "id": "settled",
+            "result": "pass",
+            "observed": "0xdb90cbfcad7b75b59927ae9845f2a34357a0646461747b7537a77e0b84a0d56a",
+            "detail": "source=x-payment-response"
+          },
+          {
+            "id": "model_matches_request",
+            "result": "pass",
+            "observed": "sha256:cd62f9d5ea30935dafdf7850f2035a007b1ccc1920abf400c4410ceb68d795e5",
+            "expected": "sha256:cd62f9d5ea30935dafdf7850f2035a007b1ccc1920abf400c4410ceb68d795e5",
+            "detail": "served-model source=body.model"
+          }
+        ],
+        "sessionId": "beta-4x",
+        "challenge": {
+          "scheme": "exact",
+          "network": "eip155:8453",
+          "maxAmountRequired": "2000",
+          "payTo": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+          "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          "rawHash": "066c90815a6c39993418525a4169005a1eee0fe4d3399688271267510ca35ff2",
+          "resource": "https://blockrun.ai/api/v1/chat/completions",
+          "maxTimeoutSeconds": 300
+        },
+        "payment": {
+          "scheme": "exact",
+          "network": "eip155:8453",
+          "amountAuthorized": "2000",
+          "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          "payTo": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+          "xPaymentHash": "48e8a6722d3b3fb83c5d081c85b88ade1a7714d4632f16af3a04b7cabd332d17"
+        },
+        "settlement": {
+          "success": true,
+          "source": "x-payment-response",
+          "txHash": "0xdb90cbfcad7b75b59927ae9845f2a34357a0646461747b7537a77e0b84a0d56a",
+          "network": "eip155:8453"
+        }
+      },
+      "leafHash": "13dfd3cbdea0ee00ede56d82deca3020c74a9b631a627e1a8f2a2245f9ffed4c",
+      "proof": [
+        {
+          "hash": "f753a33119369917d8ee7af0f682b10d63b52ec9909a4cdec5755dea7c0b4e2f",
+          "side": "left"
+        },
+        {
+          "hash": "2c09f0e0937ec080ab4b134fe329dd7e547a3bec10915ff4d5220f1192307fd9",
+          "side": "left"
+        },
+        {
+          "hash": "8e97b133419a8b3d625a4b963754a239437c124c44e826c22d1601511ce912be",
+          "side": "left"
+        }
+      ],
+      "root": "824543426df4b3e01f04a499fa5edb704667584789116d538b3a011c6581cd96",
+      "attestationId": "36dda732-d173-4d95-bfe9-8bbb77f16383",
+      "verifyUrl": "https://rubric-protocol.com/audit/36dda732-d173-4d95-bfe9-8bbb77f16383",
+      "verifyApiUrl": "https://rubric-protocol.com/v1/verify/36dda732-d173-4d95-bfe9-8bbb77f16383",
+      "envelope": {
+        "schemaVersion": "rubric.x402-attest/v1",
+        "leafType": "DATA_RECORD",
+        "root": "824543426df4b3e01f04a499fa5edb704667584789116d538b3a011c6581cd96",
+        "leafCount": 12,
+        "firstCallId": "01a0359e-6add-7000-a234-691e9b94304a",
+        "lastCallId": "01a0359e-c394-7000-95b9-3d6f16e7834d",
+        "timeRange": {
+          "from": "2026-08-24T21:12:49.629Z",
+          "to": "2026-08-24T21:13:13.754Z"
+        },
+        "subjectId": "substitution-beta",
+        "merkle": {
+          "hash": "sha256",
+          "leafPrefix": "0x00",
+          "nodePrefix": "0x01",
+          "oddNode": "promote"
+        }
+      }
+    }
+  }
+]
