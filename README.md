@@ -34,7 +34,7 @@ packages/
 ## The one-line integration
 
 ```diff
-+ import { withAttestation } from '@0xsims/x402-attest';
++ import { withAttestation } from '@tempus1/x402-attest';
 +
 + const fetchAndPay = withAttestation(baseX402Fetch, {
 +   subjectId: 'agent-alpha',
@@ -51,7 +51,7 @@ wraps. Nothing else in your code changes.
 ### Full configuration
 
 ```ts
-import { createTap, withAttestation } from '@0xsims/x402-attest';
+import { createTap, withAttestation } from '@tempus1/x402-attest';
 
 // Optional but strongly recommended: see "What the tap is for" below.
 const tap = createTap();
@@ -104,17 +104,17 @@ npm run pack        # -> ./tarballs/*.tgz, self-contained, dist included
 Then in the consuming project:
 
 ```bash
-npm i /path/to/0xsims-x402-attest-0.1.0.tgz
+npm i /path/to/tempus1-x402-attest-0.1.0.tgz
 ```
 
 Install **all three together** if you want the ClawRouter plugin or the verifier —
-they depend on `@0xsims/x402-attest@0.1.0`, which cannot resolve from the
+they depend on `@tempus1/x402-attest@0.1.0`, which cannot resolve from the
 registry while it is unpublished:
 
 ```bash
-npm i ./tarballs/0xsims-x402-attest-0.1.0.tgz \
-      ./tarballs/0xsims-clawrouter-attest-0.1.0.tgz \
-      ./tarballs/0xsims-x402-verify-cli-0.1.0.tgz
+npm i ./tarballs/tempus1-x402-attest-0.1.0.tgz \
+      ./tarballs/tempus1-clawrouter-attest-0.1.0.tgz \
+      ./tarballs/tempus1-x402-verify-cli-0.1.0.tgz
 ```
 
 Both bins come with them: `x402-attest` and `x402-verify`.
@@ -363,7 +363,7 @@ aliases is what makes this work rather than silently observing nothing.
 ## Verification
 
 ```bash
-npx @0xsims/x402-attest verify ./receipt.json   # exit 0 = valid, nonzero = tampered
+npx @tempus1/x402-attest verify ./receipt.json   # exit 0 = valid, nonzero = tampered
 ```
 
 | exit | meaning |

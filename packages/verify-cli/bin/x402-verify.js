@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { runCli } from '@0xsims/x402-attest/cli';
+import { runCli } from '@tempus1/x402-attest/cli';
 
 runCli(process.argv.slice(2), undefined, undefined, 'x402-verify')
   .then((code) => {

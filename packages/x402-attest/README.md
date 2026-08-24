@@ -1,11 +1,11 @@
-# @0xsims/x402-attest
+# @tempus1/x402-attest
 
 Drop-in attestation wrapper for x402 payment clients. Every paid call produces a
 tamper-evident receipt that a third party can verify without trusting the agent, the
 seller, or Rubric.
 
 ```diff
-+ import { withAttestation } from '@0xsims/x402-attest';
++ import { withAttestation } from '@tempus1/x402-attest';
 + const fetchAndPay = withAttestation(baseX402Fetch, { subjectId: 'agent-alpha' });
 
 - const res = await baseX402Fetch(url, init);
@@ -21,7 +21,7 @@ seller, or Rubric.
 Zero runtime dependencies. Node >= 20.11.
 
 ```bash
-npx @0xsims/x402-attest verify ./receipt.json   # exit 0 = valid
+npx @tempus1/x402-attest verify ./receipt.json   # exit 0 = valid
 ```
 
 Full documentation, a worked receipt, and an honest account of what a receipt does

@@ -313,11 +313,11 @@ retrievable later, so without it the feature would be almost always unavailable.
 
 ## 14. Verify CLI ships from both packages
 
-**Spec:** shows `npx @0xsims/x402-attest verify ./receipt.json`, and also lists
+**Spec:** shows `npx @tempus1/x402-attest verify ./receipt.json`, and also lists
 `packages/verify-cli`.
 
-**What we do:** both. `@0xsims/x402-attest` exposes the documented `x402-attest`
-bin; `@0xsims/x402-verify-cli` is a read-only package exposing `x402-verify`.
+**What we do:** both. `@tempus1/x402-attest` exposes the documented `x402-attest`
+bin; `@tempus1/x402-verify-cli` is a read-only package exposing `x402-verify`.
 
 ## 15. Exit code for a root that does not match the anchored record
 

@@ -99,13 +99,13 @@ jobs:
           mkdir -p /tmp/consumer && cd /tmp/consumer
           npm init -y >/dev/null && npm pkg set type=module >/dev/null
           npm install \
-            "$GITHUB_WORKSPACE"/tarballs/0xsims-x402-attest-*.tgz \
-            "$GITHUB_WORKSPACE"/tarballs/0xsims-clawrouter-attest-*.tgz \
-            "$GITHUB_WORKSPACE"/tarballs/0xsims-x402-verify-cli-*.tgz
+            "$GITHUB_WORKSPACE"/tarballs/tempus1-x402-attest-*.tgz \
+            "$GITHUB_WORKSPACE"/tarballs/tempus1-clawrouter-attest-*.tgz \
+            "$GITHUB_WORKSPACE"/tarballs/tempus1-x402-verify-cli-*.tgz
           node --input-type=module -e "
-            import { withAttestation, verifyReceipt, createTap } from '@0xsims/x402-attest';
-            import { withClawRouterAttestation } from '@0xsims/clawrouter-attest';
-            import { verifyReceipt as v2 } from '@0xsims/x402-verify-cli';
+            import { withAttestation, verifyReceipt, createTap } from '@tempus1/x402-attest';
+            import { withClawRouterAttestation } from '@tempus1/clawrouter-attest';
+            import { verifyReceipt as v2 } from '@tempus1/x402-verify-cli';
             const fns = [withAttestation, verifyReceipt, createTap, withClawRouterAttestation, v2];
             if (!fns.every(f => typeof f === 'function')) { throw new Error('exports missing'); }
             const w = withAttestation(async () => new Response('{}', { status: 200 }), {

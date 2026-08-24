@@ -1,5 +1,5 @@
 /**
- * Wire types for @0xsims/x402-attest.
+ * Wire types for @tempus1/x402-attest.
  *
  * Everything in this file is part of the evidence format. Changing the shape of
  * `CallRecord` changes every leaf hash ever produced, so `v` is pinned and any
