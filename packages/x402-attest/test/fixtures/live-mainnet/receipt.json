@@ -1,0 +1,131 @@
+{
+  "callRecord": {
+    "v": 1,
+    "callId": "01a034d5-cb98-7000-8180-5a62967edc03",
+    "subjectId": "live-demo",
+    "startedAt": "2026-08-24T17:33:41.656Z",
+    "endedAt": "2026-08-24T17:33:44.239Z",
+    "durationMs": 2583,
+    "request": {
+      "method": "POST",
+      "host": "blockrun.ai",
+      "path": "/api/v1/chat/completions",
+      "bodyHash": "ca9613698f0c6c063e78708c40b517e458920bce5652991b08c18be4825fdbbd",
+      "bodyBytes": 121,
+      "contentType": "application/json"
+    },
+    "response": {
+      "status": 200,
+      "bodyHash": "08c81edbfe24c2a9165bd7942b605147fdd360e126b30f54ce51605aaede5e44",
+      "bodyBytes": 475,
+      "headers": {
+        "content-type": "application/json",
+        "payment-response": "eyJzdWNjZXNzIjp0cnVlLCJ0cmFuc2FjdGlvbiI6IjB4ZTQ1ODZkNjJiNTg0Y2M3OTZmNGE0NzFmYWY5YjUxZDIxZWMyMzZjYzY5NWRiNjc4MDRhZDM3MmZkZjRlZDIzYSIsIm5ldHdvcmsiOiJlaXAxNTU6ODQ1MyIsInBheWVyIjoiMHg2QTc0MkFhNDBjMkEzYTVlYzZlYTczMGMzQzQ3RmNjODNDNDg3NTgzIn0="
+      }
+    },
+    "outcome": "policy_violation",
+    "assertions": [
+      {
+        "id": "price_matches_challenge",
+        "result": "fail",
+        "observed": "2000",
+        "expected": "0.002000"
+      },
+      {
+        "id": "payto_matches_challenge",
+        "result": "unknown",
+        "observed": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+        "detail": "payee not observable on both sides"
+      },
+      {
+        "id": "network_allowed",
+        "result": "unknown",
+        "expected": "eip155:8453",
+        "detail": "no network observed"
+      },
+      {
+        "id": "payto_allowed",
+        "result": "unknown",
+        "observed": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+        "detail": "policy.allowedPayTo not set"
+      },
+      {
+        "id": "price_within_policy",
+        "result": "pass",
+        "observed": "0.002000",
+        "expected": "0.10"
+      },
+      {
+        "id": "budget_within_cap",
+        "result": "pass",
+        "observed": "0.006000",
+        "expected": "1.00"
+      },
+      {
+        "id": "settled",
+        "result": "pass",
+        "observed": "0xe4586d62b584cc796f4a471faf9b51d21ec236cc695db67804ad372fdf4ed23a",
+        "detail": "source=x-payment-response"
+      },
+      {
+        "id": "model_matches_request",
+        "result": "pass",
+        "observed": "sha256:9a8f4a62b182ff6404e9604b2c58fb21389ac2f26e866f792969469da276a02f",
+        "expected": "sha256:9a8f4a62b182ff6404e9604b2c58fb21389ac2f26e866f792969469da276a02f",
+        "detail": "served-model source=body.model"
+      }
+    ],
+    "sessionId": "live-0x6A742Aa4",
+    "challenge": {
+      "scheme": "unknown",
+      "network": "unknown",
+      "maxAmountRequired": "0.002000",
+      "payTo": "unknown",
+      "asset": "unknown",
+      "rawHash": "5ca8b25d313f5bd5071c79ff4c4fd0037de822b14abfd39ac2001bb75e6783ca"
+    },
+    "payment": {
+      "scheme": "unknown",
+      "network": "unknown",
+      "amountAuthorized": "2000",
+      "asset": "unknown",
+      "payTo": "0xe9030014F5DAe217d0A152f02A043567b16c1aBf",
+      "xPaymentHash": "2980c243ca8aad2567cc0e6cd19c24aaa6657499e592d9c271dba77a8e7f2812"
+    },
+    "settlement": {
+      "success": true,
+      "source": "x-payment-response",
+      "txHash": "0xe4586d62b584cc796f4a471faf9b51d21ec236cc695db67804ad372fdf4ed23a",
+      "network": "eip155:8453"
+    }
+  },
+  "leafHash": "3f2a807d2aa07f47f2eeebb293850008055988055a1bf571d36b027c55f8a14b",
+  "proof": [
+    {
+      "hash": "db014b74fc86f69f96100a6fab2f2487d9bd6ed6437ce03ba8c75c6db7e35cde",
+      "side": "left"
+    }
+  ],
+  "root": "a70b11dccc323ac9fcb3022c6d80a1a86ae9f1b6a91c69b7b07d7c9745f115a4",
+  "attestationId": "04264ea8-046a-410d-a77c-4d6a49c28b1d",
+  "verifyUrl": "https://rubric-protocol.com/audit/04264ea8-046a-410d-a77c-4d6a49c28b1d",
+  "envelope": {
+    "schemaVersion": "rubric.x402-attest/v1",
+    "leafType": "DATA_RECORD",
+    "root": "a70b11dccc323ac9fcb3022c6d80a1a86ae9f1b6a91c69b7b07d7c9745f115a4",
+    "leafCount": 3,
+    "firstCallId": "01a034cf-a3be-7000-8a72-8747a6ba3992",
+    "lastCallId": "01a034d5-cb98-7000-8180-5a62967edc03",
+    "timeRange": {
+      "from": "2026-08-24T17:26:58.237Z",
+      "to": "2026-08-24T17:33:44.239Z"
+    },
+    "subjectId": "live-demo",
+    "merkle": {
+      "hash": "sha256",
+      "leafPrefix": "0x00",
+      "nodePrefix": "0x01",
+      "oddNode": "promote"
+    }
+  }
+}

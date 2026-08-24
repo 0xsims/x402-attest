@@ -235,16 +235,32 @@ describe('receipt verification', () => {
     expect(JSON.stringify(receipt)).not.toContain('a'.repeat(64));
   });
 
-  it('reports a batch that has not reached the ledger yet (exit 3)', async () => {
+  it('reports a batch that has not reached the ledger yet as pending (exit 5)', async () => {
     rubric.options.verifyStatus = 'signed-pending-flush';
     const [receipt] = await makeReceipt(1);
     const r = await verifyReceipt(receipt!, { fetchImpl: fetch });
-    expect(r.code).toBe(VERIFY_EXIT.NOT_ANCHORED);
-    // Hash and proof are fine; only the anchor state is not there yet, and the
-    // message says so rather than implying the receipt is forged.
+    expect(r.code).toBe(VERIFY_EXIT.PENDING_ANCHOR);
+    expect(r.checks.anchored).toBe('pending');
+    // Hash, proof and commitment are fine; only the ledger flush is outstanding,
+    // and the message says so rather than implying the receipt is forged.
     expect(r.checks.leafHash).toBe('pass');
     expect(r.checks.proof).toBe('pass');
     expect(r.checks.commitment).toBe('pass');
+    expect(r.reason).toMatch(/still in flight/);
+    expect(r.reason).not.toMatch(/not "anchored"/);
+    // Here a commitment *was* compared, so the message may say so.
+    expect(r.reason).toMatch(/the commitment all check out/);
+  });
+
+  it('still reports an unrecognized anchor state as not anchored (exit 3)', async () => {
+    // `pending` is for states the node reports while it is still working. A
+    // state we cannot place is not evidence of tampering either, but it does not
+    // get the "this resolves itself in a minute" framing.
+    rubric.options.verifyStatus = 'revoked';
+    const [receipt] = await makeReceipt(1);
+    const r = await verifyReceipt(receipt!, { fetchImpl: fetch });
+    expect(r.code).toBe(VERIFY_EXIT.NOT_ANCHORED);
+    expect(r.checks.anchored).toBe('fail');
     expect(r.reason).toMatch(/has not reached the ledger yet/);
   });
 
@@ -252,7 +268,7 @@ describe('receipt verification', () => {
     const [receipt] = await makeReceipt(1);
     const unknown: Receipt = {
       ...receipt!,
-      verifyUrl: `${rubric.url}/v1/verify/does-not-exist`,
+      verifyApiUrl: `${rubric.url}/v1/verify/does-not-exist`,
     };
     const r = await verifyReceipt(unknown, { fetchImpl: fetch });
     expect(r.code).toBe(VERIFY_EXIT.NOT_ANCHORED);
@@ -261,7 +277,7 @@ describe('receipt verification', () => {
 
   it('reports an unreachable verifier as a fetch failure (exit 4)', async () => {
     const [receipt] = await makeReceipt(1);
-    const dead: Receipt = { ...receipt!, verifyUrl: 'http://127.0.0.1:1/v1/verify/x' };
+    const dead: Receipt = { ...receipt!, verifyApiUrl: 'http://127.0.0.1:1/v1/verify/x' };
     const r = await verifyReceipt(dead, { fetchImpl: fetch });
     expect(r.code).toBe(VERIFY_EXIT.FETCH_FAILED);
     // Crucially NOT reported as invalid: unreachable is not the same as forged.
@@ -383,6 +399,28 @@ describe('verify CLI', () => {
     expect(code).not.toBe(0);
     expect(code).toBe(1);
     expect(out.join('\n')).toContain('INVALID');
+  });
+
+  it('exits 5 and prints PENDING, not INVALID, while the anchor is in flight', async () => {
+    rubric.options.verifyStatus = 'signed-pending-hcs';
+    const { path } = await writeReceipts(1);
+    expect(await runCli(['verify', path], io)).toBe(VERIFY_EXIT.PENDING_ANCHOR);
+    // The word on screen is the whole point: "INVALID" on a receipt whose only
+    // fault is that the batch has not flushed yet reads as an accusation.
+    expect(out.join('\n')).toContain('PENDING');
+    expect(out.join('\n')).not.toContain('INVALID');
+    expect(out.join('\n')).toContain('anchored       pending');
+  });
+
+  it('lets a real problem outrank a pending one across a batch', async () => {
+    rubric.options.verifyStatus = 'signed-pending-hcs';
+    const { receipts } = await writeReceipts(2);
+    const tampered = structuredClone(receipts[1]!);
+    tampered.callRecord.request.path = '/tampered';
+    const path = join(dir, 'mixed.jsonl');
+    writeFileSync(path, [receipts[0], tampered].map((r) => JSON.stringify(r)).join('\n'));
+
+    expect(await runCli(['verify', path], io)).toBe(VERIFY_EXIT.HASH_MISMATCH);
   });
 
   it('runs the whole thing as a real subprocess and sets the exit code', async () => {

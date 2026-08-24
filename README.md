@@ -206,7 +206,8 @@ asked for `claude-sonnet-4.6` and the router served `gemini-2.5-flash`.
   ],
   "root": "b8a44427b72fce0105bcd2e11c0e8bcad1e3c902df5faedba10816e5355519fb",
   "attestationId": "1645f6ca-da6d-4001-819f-698965e70fb6",
-  "verifyUrl": "https://rubric-protocol.com/v1/verify/1645f6ca-da6d-4001-819f-698965e70fb6",
+  "verifyUrl": "https://rubric-protocol.com/audit/1645f6ca-da6d-4001-819f-698965e70fb6",
+  "verifyApiUrl": "https://rubric-protocol.com/v1/verify/1645f6ca-da6d-4001-819f-698965e70fb6",
   "envelope": {
     "schemaVersion": "rubric.x402-attest/v1",
     "leafType": "DATA_RECORD",
@@ -294,7 +295,7 @@ legitimate result and is recorded rather than omitted.
 
 | id | passes when | `unknown` when |
 |---|---|---|
-| `price_matches_challenge` | amount authorized equals the advertised `maxAmountRequired` | no challenge or no payment observed |
+| `price_matches_challenge` | amount authorized equals the advertised amount (`maxAmountRequired` on v1, `amount` on v2) | no challenge or no payment observed |
 | `payto_matches_challenge` | payment went to the address the challenge named | either side unobservable |
 | `network_allowed` | network is in `policy.allowedNetworks` | policy field unset |
 | `payto_allowed` | payee is in `policy.allowedPayTo` | policy field unset |
@@ -305,6 +306,23 @@ legitimate result and is recorded rather than omitted.
 
 Any `fail` sets `outcome: 'policy_violation'`. It never throws and never blocks the
 response. The library records; the caller decides.
+
+### Reading the challenge when a seller sends it twice
+
+A seller may serve the requirements in a header, in the 402 body, or — commonly —
+in both at once. BlockRun answers a 402 with `PAYMENT-REQUIRED`,
+`X-PAYMENT-REQUIRED` **and** `WWW-Authenticate: X402 requirements="<b64>"`, plus a
+human-readable JSON error body.
+
+The header always wins. The two say different things: the header carries the
+machine-readable requirements (`"amount": "2000"`, atomic units), the body carries
+prose for a person (`"price": { "amount": "0.002000", "currency": "USD" }`) and has
+no `accepts`, no `payTo`, no `scheme` and no `network`. Reading the body when a
+header is present recorded a USD price against an atomic authorization and failed
+`price_matches_challenge` on a correct payment — see DEVIATIONS §16.
+
+`WWW-Authenticate` is only read when it carries the `X402` auth-scheme token, so a
+`Bearer realm=...` from an unrelated auth layer is never mistaken for payment terms.
 
 ### `model_matches_request` is the proof-of-routing check
 
@@ -346,17 +364,25 @@ four payment-side checks return real verdicts, and without it — same client, s
 seller — they degrade to `unknown` with `challenge` and `payment` absent. No
 optimistic passes either way.
 
-Two things that test pinned down, which the published docs get wrong:
+The two generations put everything in different places, and both are deployed:
 
-| | docs.x402.org says | `x402-fetch@1.2.0` actually does |
+| | `x402-fetch@1.2.0` (v1) | `@x402/core` + `@x402/evm` (v2) |
 |---|---|---|
-| payment header | `PAYMENT-SIGNATURE` | **`X-PAYMENT`** |
-| requirements | in a `PAYMENT-REQUIRED` header | in the **402 body**, as `accepts[]` |
-| amount field | unspecified | **`maxAmountRequired`** (required) |
-| network | CAIP-2 `eip155:8453` | **`base`** |
+| payment header | `X-PAYMENT` | `PAYMENT-SIGNATURE` |
+| requirements | 402 body, `accepts[]` | `PAYMENT-REQUIRED` / `X-PAYMENT-REQUIRED` / `WWW-Authenticate` header |
+| amount field | `maxAmountRequired` | `amount` |
+| network | `base` | CAIP-2 `eip155:8453` |
+| scheme / network in the payment payload | top level | under `accepted` |
+| `resource` | on each `accepts[]` entry | on the envelope, as `{ url, description, mimeType }` |
 
-Reading both header generations, both amount spellings, and normalizing network
-aliases is what makes this work rather than silently observing nothing.
+docs.x402.org describes only the v2 header names and pins no schema for either —
+the OpenAPI document it references is an unmodified template. Both shapes here
+were read off the encoders on disk and off a live mainnet 402, not off the docs;
+DEVIATIONS §17 records the v2 payload verbatim.
+
+Reading both generations, both amount spellings, both homes for scheme and
+network, and normalizing network aliases is what makes this work rather than
+silently observing nothing.
 
 ---
 
@@ -371,11 +397,25 @@ npx @tempus1/x402-attest verify ./receipt.json   # exit 0 = valid, nonzero = tam
 | 0 | valid |
 | 1 | hash mismatch — the record does not hash to its claimed leaf |
 | 2 | proof mismatch — the proof does not reach the anchored root |
-| 3 | not anchored — locally valid, but not on the ledger yet |
+| 3 | not anchored — locally valid, but the node reports a state we cannot place |
 | 4 | fetch failed — the public verify endpoint could not be reached |
+| 5 | pending anchor — signed and held by the node, HCS flush still in flight |
 
-Note that 3 and 4 are deliberately not "invalid". A batch that has not flushed yet,
-and a verifier you cannot reach, are both different from a forged receipt.
+Note that 3, 4 and 5 are deliberately not "invalid". A batch that has not flushed
+yet, and a verifier you cannot reach, are both different from a forged receipt.
+
+**Exit 5 is the common one, and it is not a problem.** HCS anchoring happens at the
+next tier-2 flush, typically 60–120s after submission, so a receipt verified
+immediately after it is written reports `status: "signed-pending-hcs"` — signed,
+held, ledger anchor in flight. Everything checkable has been checked: the record
+hashes to its leaf, the proof reaches the submitted root, and the commitment
+matches. Verify again after a couple of minutes and it becomes 0. The CLI prints
+`PENDING`, not `INVALID`, because in a tamper-evidence tool the second word means
+something very specific and this is not it.
+
+Across several receipts the worst result wins, and pending is the least severe
+nonzero code: a real problem in any receipt still outranks it. In CI, treat 5 as
+"retry shortly" rather than as a gate failure.
 
 Flags: `--offline` (hash and proof only, no network), `--json`, `--quiet`,
 `--verify-url <url>`, `--timeout <ms>`. Input may be one receipt, a JSON array, or
@@ -389,6 +429,16 @@ Four checks, and the first three are pure local computation:
    Rubric, which the receipt carries.
 4. `GET /v1/verify/{attestationId}` — public, no key — must report `anchored` and
    hold the same `payload_commitment` the receipt recorded.
+
+**Two URLs, and which one to use.** A receipt carries both. `verifyUrl` is the link
+to hand a person: Rubric returns `/audit/{id}`, a rendered HTML page.
+`verifyApiUrl` is `/v1/verify/{id}`, the JSON API, and it is what `verifyReceipt`
+calls. The API path is always built locally rather than taken from the server
+response, keeping only the origin the server named — tiered attestations resolve
+from the store of the node that issued them, so that origin matters. Receipts
+written before 0.1.1 have no `verifyApiUrl`; the API path is derived from
+`verifyUrl`'s origin for those. If the endpoint returns something that is not JSON
+the verifier says so in those terms rather than surfacing a parser error.
 
 **On step 4, and why it is not a root comparison.** Verified against the live
 mainnet node: Rubric never echoes the submitted payload back. Tiered payloads are
@@ -604,7 +654,7 @@ This library proves what was observed and what was checked. Nothing more.
 ## Tests
 
 ```bash
-npm test        # 208 tests
+npm test        # 242 tests
 npm run coverage
 ```
 
@@ -615,6 +665,16 @@ integration test. The shipped package still has **zero runtime dependencies**.
 
 Ships a mock x402 seller, a mock facilitator/payment client, and a mock Rubric node.
 No live network in CI.
+
+`test/fixtures/live-mainnet/` holds captured wire data from the first live mainnet
+run — the 402 challenge headers, the 402 body, the settlement header, the
+`/v1/verify` response, the audit page, and the receipt itself. The challenge and
+request-body captures are pinned by hash against what that receipt recorded, so
+they are provably the same bytes and not a paraphrase. The payment headers are the
+one thing that could not be captured — the plaintext is hashed and discarded by
+design — so they are produced by the shipping `@x402/core` + `@x402/evm` encoder
+signing the real challenge with an unfunded throwaway key, and a test re-runs that
+encoder to keep the frozen fixture from drifting.
 
 Covered: JCS determinism (shuffled keys, non-ASCII, astral-plane keys, the RFC 8785
 worked example); Merkle round-trips at every index for batch sizes 1, 2, 3, 7, 8 and

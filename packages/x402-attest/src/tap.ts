@@ -1,8 +1,8 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import {
-  CHALLENGE_HEADERS,
   PAYMENT_HEADERS,
   SETTLEMENT_HEADERS,
+  pickChallengeHeader,
   pickHeader,
 } from './x402.js';
 import type { FetchLike, TapObservation, X402Tap } from './types.js';
@@ -59,11 +59,20 @@ export function createTap(): X402Tap {
       const res = await inner(input, init);
       if (!store) return res;
 
-      // Incoming: the 402 carries the requirements, either as a header or as the
-      // body. Only 402s are cloned and read; every other response passes through
+      // Incoming: the 402 carries the requirements as a header, as the body, or —
+      // in the wild, commonly — as both. Record the two separately so the call
+      // site can prefer the header without having to guess which one it holds.
+      // Only 402s are cloned and read; every other response passes through
       // untouched so we add nothing to the hot path.
-      const challengeHeader = pickHeader(res.headers, CHALLENGE_HEADERS);
-      if (challengeHeader) store.challengeRaw = challengeHeader.value;
+      //
+      // First observation wins for all three fields, so `challengeHeader`,
+      // `challengeBody` and the hashed `challengeRaw` always describe the same
+      // 402 even when a rejected payment produces a second one.
+      const challengeHeader = pickChallengeHeader(res.headers);
+      if (challengeHeader) {
+        store.challengeHeader ??= challengeHeader;
+        store.challengeRaw ??= challengeHeader;
+      }
 
       if (res.status === 402 && !store.challengeBody) {
         try {

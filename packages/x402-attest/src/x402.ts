@@ -16,9 +16,46 @@ import type { ChallengeRecord, PaymentRecord, SettlementRecord } from './types.j
  * generations and both field spellings, and record exactly what we found.
  */
 
-export const CHALLENGE_HEADERS = ['payment-required', 'x-payment-required'] as const;
+/**
+ * Headers that can carry the 402 challenge, most specific first.
+ *
+ * `www-authenticate` is last because it is a general-purpose header: a 401 from
+ * an unrelated auth layer will also set it, and only the `X402` auth-scheme
+ * token makes it ours. The two dedicated spellings carry the base64 directly and
+ * win when present. Observed live on BlockRun (2026-08-24): all three are served
+ * on the same 402, carrying byte-identical base64.
+ */
+export const CHALLENGE_HEADERS = [
+  'payment-required',
+  'x-payment-required',
+  'www-authenticate',
+] as const;
 export const PAYMENT_HEADERS = ['payment-signature', 'x-payment'] as const;
 export const SETTLEMENT_HEADERS = ['payment-response', 'x-payment-response'] as const;
+
+/** `X402` used as an auth-scheme token, in a possibly multi-challenge header. */
+const X402_AUTH_SCHEME = /(?:^|[\s,])X402(?=[\s,]|$)/i;
+/** `requirements=<b64>` or `requirements="<b64>"`, per RFC 9110 auth-param syntax. */
+const REQUIREMENTS_PARAM = /(?:^|[\s,;])requirements\s*=\s*(?:"([^"]*)"|([^\s,;]+))/i;
+
+/**
+ * Unwrap a challenge header value.
+ *
+ * The dedicated headers hold the base64 payload directly. `WWW-Authenticate`
+ * holds it as `X402 requirements="<b64>"`, and may list other auth schemes
+ * alongside it. Returns undefined when the header is not an x402 challenge —
+ * a `Bearer realm=...` on a 401 must not be mistaken for payment requirements.
+ */
+export function unwrapChallengeHeader(name: string, value: string): string | undefined {
+  if (name.toLowerCase() !== 'www-authenticate') {
+    const v = value.trim();
+    return v.length > 0 ? v : undefined;
+  }
+  if (!X402_AUTH_SCHEME.test(value)) return undefined;
+  const m = REQUIREMENTS_PARAM.exec(value);
+  const raw = m?.[1] ?? m?.[2];
+  return raw && raw.length > 0 ? raw : undefined;
+}
 
 /** Decode base64 (standard or url-safe) JSON. Returns null rather than throwing. */
 export function decodeB64Json(raw: string): unknown {
@@ -47,6 +84,11 @@ export function decodeMaybeB64Json(raw: string): unknown {
 
 function str(v: unknown): string | undefined {
   return typeof v === 'string' && v.length > 0 ? v : undefined;
+}
+
+/** Narrow to a plain object, so a wire field of the wrong type reads as absent. */
+function objOf(v: unknown): Record<string, unknown> {
+  return v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
 }
 
 function num(v: unknown): number | undefined {
@@ -204,7 +246,11 @@ export function parseChallenge(
     rawHash: sha256(rawForHash),
   };
 
-  const resource = sanitizeResource(str(chosen['resource']));
+  // v1 puts `resource` on each accepts entry as a bare URL string; v2 hoists it
+  // to the envelope as `{ url, description, mimeType }`. Same field, two homes.
+  const resource = sanitizeResource(
+    str(chosen['resource']) ?? str(objOf(obj['resource'])['url']),
+  );
   if (resource) record.resource = resource;
   const timeout = num(chosen['maxTimeoutSeconds']);
   if (timeout !== undefined) record.maxTimeoutSeconds = timeout;
@@ -236,24 +282,45 @@ export function parsePaymentHeader(headerValue: string): PaymentRecord | undefin
   }
 
   const obj = decoded as Record<string, unknown>;
-  const payload = (obj['payload'] as Record<string, unknown>) ?? {};
-  const authorization = (payload['authorization'] as Record<string, unknown>) ?? {};
+  const payload = objOf(obj['payload']);
+  const authorization = objOf(payload['authorization']);
+  // v2 moves the requirements the client agreed to under `accepted`, and drops
+  // `scheme`/`network` from the top level entirely. Reading only the v1
+  // spellings is why a fully-parsed v2 payment still recorded `scheme`,
+  // `network` and `asset` as `unknown`, degrading `network_allowed` and
+  // `payto_allowed` to non-checks on a payment we could see perfectly well.
+  const accepted = objOf(obj['accepted']);
+  const isV2 = num(obj['x402Version']) === 2 || Object.keys(accepted).length > 0;
 
   const amount =
     str(authorization['value']) ??
     str(payload['value']) ??
     amountOf(obj) ??
     amountOf(payload) ??
+    amountOf(accepted) ??
     'unknown';
 
+  // On v2, `accepted.payTo` is the payee; the signed `authorization.to` is not.
+  // For the plain `exact` scheme the two are the same address, but the escrow
+  // schemes sign `to` as a fixed token-collector contract
+  // (0x0E3dF9510de65469C4518D7843919c0b8C7A7757 for EIP-3009, another for
+  // Permit2) and route to the payee from there. Reading `to` would report the
+  // collector as the payee and fail `payto_matches_challenge` on an honest
+  // payment. v1 has no `accepted`, so it still reads `authorization.to`.
+  const payToV2 = str(accepted['payTo']) ?? str(accepted['payToAddress']);
   const payTo =
-    str(authorization['to']) ?? str(payload['to']) ?? str(obj['payTo']) ?? 'unknown';
+    (isV2 ? payToV2 : undefined) ??
+    str(authorization['to']) ??
+    str(payload['to']) ??
+    str(obj['payTo']) ??
+    payToV2 ??
+    'unknown';
 
   return {
-    scheme: str(obj['scheme']) ?? 'unknown',
-    network: str(obj['network']) ?? 'unknown',
+    scheme: str(obj['scheme']) ?? str(accepted['scheme']) ?? 'unknown',
+    network: str(obj['network']) ?? str(accepted['network']) ?? 'unknown',
     amountAuthorized: amount,
-    asset: assetOf(obj) ?? assetOf(payload) ?? 'unknown',
+    asset: assetOf(obj) ?? assetOf(payload) ?? assetOf(accepted) ?? 'unknown',
     payTo,
     xPaymentHash,
   };
@@ -316,6 +383,24 @@ export function pickHeader(
   for (const n of names) {
     const v = headers.get(n);
     if (v) return { name: n, value: v };
+  }
+  return undefined;
+}
+
+/**
+ * Read the 402 challenge out of whichever header carries it.
+ *
+ * Unlike `pickHeader` this keeps looking: a `www-authenticate` that turns out to
+ * belong to another auth scheme is skipped rather than returned as an empty
+ * challenge.
+ */
+export function pickChallengeHeader(headers: Headers | undefined): string | undefined {
+  if (!headers) return undefined;
+  for (const name of CHALLENGE_HEADERS) {
+    const value = headers.get(name);
+    if (!value) continue;
+    const unwrapped = unwrapChallengeHeader(name, value);
+    if (unwrapped) return unwrapped;
   }
   return undefined;
 }
