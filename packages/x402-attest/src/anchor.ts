@@ -16,7 +16,18 @@ export type { BatchEnvelope };
 
 export type AnchorResult = {
   attestationId: string;
+  /**
+   * Where to send a person. May be a human-readable HTML page: Rubric's keyless
+   * path returns `/audit/{id}`, which renders the record for a reader.
+   */
   verifyUrl: string;
+  /**
+   * The JSON API a verifier calls. The `/v1/verify/{id}` path is always built
+   * locally, never read off the server response — see `verifyUrl` for why. Only
+   * the origin is taken from a server-supplied URL, and only so the request
+   * reaches the node that actually holds the record.
+   */
+  verifyApiUrl: string;
   /** Returned once by the tiered path. A credential — never placed in a receipt. */
   payloadKey?: string;
   /**
@@ -104,6 +115,31 @@ export type AnchorClientOptions = {
 
 export function verifyUrlFor(baseUrl: string, attestationId: string): string {
   return `${baseUrl.replace(/\/+$/, '')}/v1/verify/${encodeURIComponent(attestationId)}`;
+}
+
+/**
+ * Build the JSON verify endpoint for an attestation.
+ *
+ * The path is always ours — `/v1/verify/{id}` — because a server-supplied URL
+ * may point at a human-readable page (Rubric returns `/audit/{id}`, which is
+ * HTML). Only the *origin* is taken from the server URL when one is offered, and
+ * that part matters: tiered attestations resolve from the store of the node that
+ * issued them, so a multi-region deployment answers `found: false` if you ask
+ * the wrong node. Falls back to the configured base URL.
+ */
+export function verifyApiUrlFrom(
+  baseUrl: string,
+  serverVerifyUrl: string | undefined,
+  attestationId: string,
+): string {
+  if (serverVerifyUrl) {
+    try {
+      return verifyUrlFor(new URL(serverVerifyUrl).origin, attestationId);
+    } catch {
+      /* not a URL; fall through to the configured base */
+    }
+  }
+  return verifyUrlFor(baseUrl, attestationId);
 }
 
 export function buildEnvelope(input: {
@@ -244,9 +280,14 @@ export class AnchorClient {
       commitmentSalt = deriveCommitmentSalt(payloadKey);
     }
 
+    // The keyed path gets no human page from the server, so both point at the
+    // API. `verifyApiUrl` is what the verifier uses either way.
+    const verifyApiUrl = verifyUrlFor(this.opts.baseUrl, attestationId);
+
     return {
       attestationId,
-      verifyUrl: verifyUrlFor(this.opts.baseUrl, attestationId),
+      verifyUrl: verifyApiUrl,
+      verifyApiUrl,
       ...commitmentOf(parsed),
       ...(commitmentSalt ? { commitmentSalt } : {}),
       via: this.opts.endpoint,
@@ -321,8 +362,17 @@ export class AnchorClient {
       commitmentSalt = deriveCommitmentSalt(payloadKey);
     }
 
-    // Prefer the server-supplied verifyUrl when present; it is authoritative about
-    // which node holds the record.
+    // Two URLs, deliberately distinct.
+    //
+    // The server-supplied `verifyUrl` is for a person: Rubric returns
+    // `/audit/{id}`, a 32KB HTML page. An earlier version treated it as
+    // authoritative and handed it to the verifier, which fetched the page and
+    // died on `Unexpected token '<', "<!DOCTYPE"`. It is kept because it is the
+    // right thing to hand a human, and because it names the node that actually
+    // holds the record.
+    //
+    // The API URL is always built locally. Deriving it rather than trusting the
+    // response is what keeps the verifier pointed at a JSON endpoint.
     const verifyUrl =
       typeof o['verifyUrl'] === 'string' && o['verifyUrl'].length > 0
         ? (o['verifyUrl'] as string)
@@ -331,6 +381,7 @@ export class AnchorClient {
     return {
       attestationId,
       verifyUrl,
+      verifyApiUrl: verifyApiUrlFrom(this.opts.baseUrl, verifyUrl, attestationId),
       ...commitmentOf(parsed),
       ...(commitmentSalt ? { commitmentSalt } : {}),
       via: 'x402',

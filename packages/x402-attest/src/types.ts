@@ -172,7 +172,18 @@ export type Receipt = {
   proof: ProofStep[];
   root: string;
   attestationId: string;
+  /**
+   * The link to hand a person. Rubric's keyless path returns `/audit/{id}`, a
+   * rendered HTML page — readable, but not something a verifier can parse.
+   */
   verifyUrl: string;
+  /**
+   * The JSON endpoint a verifier calls, `/v1/verify/{id}`.
+   *
+   * Optional because receipts written before 0.1.1 do not carry it;
+   * `verifyReceipt` derives it from `verifyUrl`'s origin in that case.
+   */
+  verifyApiUrl?: string;
   /** The batch payload this leaf's root was submitted in. */
   envelope: BatchEnvelope;
   /**
@@ -201,6 +212,7 @@ export type PendingReceipt = {
   root: null;
   attestationId: null;
   verifyUrl: null;
+  verifyApiUrl?: undefined;
   envelope: null;
   payloadCommitment?: undefined;
   payloadHash?: undefined;
@@ -403,7 +415,23 @@ export type X402Tap = {
 
 export type TapObservation = {
   challengeBody?: unknown;
+  /**
+   * Bytes to hash for `challenge.rawHash` — the header value when one was served,
+   * otherwise the raw 402 body text.
+   */
   challengeRaw?: string;
+  /**
+   * The challenge as delivered in a header, decoded out of its envelope but not
+   * yet base64-decoded.
+   *
+   * Kept separate from `challengeRaw` because sellers serve both a header and a
+   * body: BlockRun answers a 402 with `PAYMENT-REQUIRED`, `X-PAYMENT-REQUIRED`
+   * and `WWW-Authenticate` *and* a human-readable JSON error body. With one
+   * field for both, the call site cannot tell which it is holding, and picking
+   * the body loses `accepts` entirely — which is how a correct payment came to
+   * be recorded with a USD-formatted price and no payee.
+   */
+  challengeHeader?: string;
   paymentHeader?: string;
   paymentHeaderName?: string;
   settlementHeader?: string;

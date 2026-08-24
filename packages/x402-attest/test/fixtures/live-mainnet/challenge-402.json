@@ -1,0 +1,1 @@
+{"error":"Payment Required","message":"This endpoint requires x402 payment","price":{"amount":"0.002000","currency":"USD"},"paymentInfo":{"network":"base","asset":"USDC","x402Version":2}}

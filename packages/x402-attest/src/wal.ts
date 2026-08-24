@@ -47,6 +47,8 @@ export type AnchorEntry = {
   root: string;
   attestationId: string;
   verifyUrl: string;
+  /** Optional so anchor lines written before 0.1.1 still replay. */
+  verifyApiUrl?: string;
   at: number;
   leafCount: number;
   /** Inclusion proof per leaf, keyed by callId. */

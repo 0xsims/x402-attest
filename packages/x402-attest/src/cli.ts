@@ -7,7 +7,7 @@ import type { Receipt } from './types.js';
  *
  * Exit codes are the interface — this is meant to be a CI gate, not something a
  * human reads. 0 valid, 1 hash mismatch, 2 proof mismatch, 3 not anchored,
- * 4 fetch failed.
+ * 4 fetch failed, 5 pending anchor.
  */
 
 /** Both `x402-attest` and `x402-verify` share this implementation. */
@@ -30,6 +30,7 @@ Exit codes:
   2  proof mismatch     the inclusion proof does not reach the anchored root
   3  not anchored       valid locally, but the batch is not on the ledger yet
   4  fetch failed       the public verify endpoint could not be reached
+  5  pending anchor     signed and held by the node, HCS flush still in flight
 
 The input may be a single receipt, a JSON array of receipts, or JSONL. When it
 holds several, the exit code is the worst result across all of them.
@@ -106,7 +107,14 @@ function symbol(v: string): string {
 }
 
 function render(io: CliIo, r: VerifyResult, label: string): void {
-  io.out(`${r.ok ? 'VALID' : 'INVALID'}  ${label}`);
+  // "INVALID" on a receipt whose only fault is that the ledger flush has not run
+  // yet says the record was altered. It was not; say what is actually true.
+  const verdict = r.ok
+    ? 'VALID'
+    : r.code === VERIFY_EXIT.PENDING_ANCHOR
+      ? 'PENDING'
+      : 'INVALID';
+  io.out(`${verdict}  ${label}`);
   io.out(`  leaf hash      ${symbol(r.checks.leafHash)}  ${r.computed.leafHash}`);
   io.out(`  proof          ${symbol(r.checks.proof)}${r.computed.root ? '    ' + r.computed.root : ''}`);
   io.out(`  envelope root  ${symbol(r.checks.envelopeRoot)}`);
@@ -131,6 +139,9 @@ function render(io: CliIo, r: VerifyResult, label: string): void {
 function worst(codes: VerifyExitCode[]): VerifyExitCode {
   const severity: VerifyExitCode[] = [
     VERIFY_EXIT.VALID,
+    // Least severe of the non-zero codes: the node has the record and everything
+    // checkable checks out, so this resolves on its own within a minute or two.
+    VERIFY_EXIT.PENDING_ANCHOR,
     VERIFY_EXIT.NOT_ANCHORED,
     VERIFY_EXIT.FETCH_FAILED,
     VERIFY_EXIT.PROOF_MISMATCH,

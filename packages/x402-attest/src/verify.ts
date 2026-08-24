@@ -39,6 +39,17 @@ export const VERIFY_EXIT = {
   PROOF_MISMATCH: 2,
   NOT_ANCHORED: 3,
   FETCH_FAILED: 4,
+  /**
+   * Signed and held by the node, ledger anchor still in flight.
+   *
+   * Distinct from NOT_ANCHORED because the difference matters to whoever reads
+   * the exit code. HCS anchoring happens at the next tier-2 flush, typically
+   * 60-120s after submission, so every receipt verified inside that window is in
+   * this state. Reporting it as a failure in a tamper-evidence tool reads as
+   * "this record was altered", which is both false and the most damaging thing
+   * this library could say.
+   */
+  PENDING_ANCHOR: 5,
 } as const;
 
 export type VerifyExitCode = (typeof VERIFY_EXIT)[keyof typeof VERIFY_EXIT];
@@ -54,7 +65,8 @@ export type VerifyResult = {
     envelopeRoot: 'pass' | 'fail' | 'skipped';
     /** Does the node hold the commitment this receipt recorded? */
     commitment: 'pass' | 'fail' | 'skipped' | 'unverifiable';
-    anchored: 'pass' | 'fail' | 'skipped';
+    /** `pending` — the node holds it, the ledger anchor has not landed yet. */
+    anchored: 'pass' | 'fail' | 'pending' | 'skipped';
   };
   /**
    * How the envelope was bound to the anchored commitment.
@@ -83,7 +95,11 @@ export type VerifyOptions = {
   /** Skip the network step. Checks 1 and 2 only. */
   offline?: boolean;
   fetchImpl?: FetchLike;
-  /** Override the URL in the receipt; useful against a staging node. */
+  /**
+   * Override the JSON verify endpoint; useful against a staging node.
+   *
+   * This must be the API, not the human audit page — it is used verbatim.
+   */
   verifyUrl?: string;
   timeoutMs?: number;
   /**
@@ -134,6 +150,53 @@ function readStatus(body: unknown): string | undefined {
 
 function looksLikeDigest(s: string): boolean {
   return /^[0-9a-f]{64}$/.test(s);
+}
+
+/**
+ * Recover the JSON verify endpoint from a receipt that only carries a link for
+ * humans.
+ *
+ * Rubric's keyless anchor returns `https://host/audit/{id}` — an HTML page. The
+ * API for the same record is `https://host/v1/verify/{id}` on the same origin.
+ * Keeping the origin matters: tiered attestations resolve from the store of the
+ * node that issued them, so rebuilding the URL from a configured default would
+ * ask the wrong node in a multi-region deployment.
+ */
+export function deriveVerifyApiUrl(
+  verifyUrl: string | undefined,
+  attestationId: string | undefined,
+): string | undefined {
+  if (!verifyUrl) return undefined;
+  let parsed: URL;
+  try {
+    parsed = new URL(verifyUrl);
+  } catch {
+    return undefined;
+  }
+  if (parsed.pathname.includes('/v1/verify/')) return parsed.toString();
+  if (!attestationId) return undefined;
+  return `${parsed.origin}/v1/verify/${encodeURIComponent(attestationId)}`;
+}
+
+/**
+ * States the verify API reports for a record it holds but has not yet flushed to
+ * HCS. `signed-pending-hcs` is the one observed live; the pattern catches the
+ * rest of the family so a renamed non-terminal state degrades to `pending`
+ * rather than to a false accusation.
+ */
+function isPendingStatus(status: string | undefined): boolean {
+  if (!status) return false;
+  return /pending|buffer|queue|submitt|process/i.test(status);
+}
+
+/** Describe a non-JSON verify response without surfacing a raw parser error. */
+function describeNonJson(url: string, contentType: string | null, text: string): string {
+  const looksHtml = /^\s*<(?:!doctype|html)/i.test(text);
+  const ct = contentType ?? 'no content-type';
+  const hint = looksHtml
+    ? '; this looks like the human audit page, not /v1/verify'
+    : '';
+  return `expected JSON from the verify API at ${url}, got ${ct}${hint}`;
 }
 
 export async function verifyReceipt(
@@ -294,7 +357,14 @@ export async function verifyReceipt(
   }
 
   // 3. The root is anchored. Public GET, no key.
-  const url = options.verifyUrl ?? receipt.verifyUrl;
+  //
+  // `verifyApiUrl` is the JSON endpoint; `verifyUrl` may be the human audit page,
+  // which is HTML and cannot be parsed. Receipts written before 0.1.1 carry only
+  // the latter, so derive the API path from its origin rather than refusing them.
+  const url =
+    options.verifyUrl ??
+    receipt.verifyApiUrl ??
+    deriveVerifyApiUrl(receipt.verifyUrl, receipt.attestationId);
   if (!url) {
     return {
       ok: false,
@@ -332,7 +402,19 @@ export async function verifyReceipt(
           computed: { leafHash: computedLeaf, root: computedRoot },
         };
       }
-      body = JSON.parse(text);
+      try {
+        body = JSON.parse(text);
+      } catch {
+        // A parser error here ("Unexpected token '<'") tells the reader nothing
+        // about what went wrong. Naming the endpoint and what came back does.
+        return {
+          ok: false,
+          code: VERIFY_EXIT.FETCH_FAILED,
+          reason: describeNonJson(url, res.headers.get('content-type'), text),
+          checks,
+          computed: { leafHash: computedLeaf, root: computedRoot },
+        };
+      }
     } finally {
       clearTimeout(timer);
     }
@@ -400,13 +482,30 @@ export async function verifyReceipt(
   }
 
   if (remote.status !== 'anchored') {
-    checks.anchored = 'fail';
+    // "Not yet" and "not so" are different claims, and only one of them is an
+    // accusation. A record the node has signed and is holding for the next
+    // tier-2 flush is pending, not failed — that flush lands 60-120s after
+    // submission, so the pending window covers essentially every receipt
+    // verified right after it was written.
+    const pending = isPendingStatus(remote.status);
+    checks.anchored = pending ? 'pending' : 'fail';
     return {
       ok: false,
-      code: VERIFY_EXIT.NOT_ANCHORED,
-      reason:
-        `attestation ${receipt.attestationId} is in state "${remote.status ?? 'unknown'}", not "anchored". ` +
-        'The hash and proof are valid; the batch has not reached the ledger yet.',
+      code: pending ? VERIFY_EXIT.PENDING_ANCHOR : VERIFY_EXIT.NOT_ANCHORED,
+      reason: pending
+        ? `attestation ${receipt.attestationId} is in state "${remote.status}": signed and held ` +
+          'by the node, ledger anchor still in flight. Nothing is wrong with this receipt — ' +
+          // Only claim the commitment where one was actually compared. Saying it
+          // "checks out" when it read `unverifiable` would be the same species of
+          // overstatement this exit code exists to avoid, pointed the other way.
+          (checks.commitment === 'pass'
+            ? 'the hash, the proof and the commitment all check out'
+            : 'the hash and the proof check out, and the commitment is ' +
+              `${checks.commitment}`) +
+          '. HCS anchoring happens at the next batch flush, typically 60-120s after ' +
+          'submission; verify again after that.'
+        : `attestation ${receipt.attestationId} is in state "${remote.status ?? 'unknown'}", not "anchored". ` +
+          'The hash and proof are valid; the batch has not reached the ledger yet.',
       checks,
       binding,
       computed: { leafHash: computedLeaf, root: computedRoot, commitment: expectedCommitment },

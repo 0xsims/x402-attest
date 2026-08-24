@@ -35,6 +35,7 @@ import {
   parsePaymentHeader,
   parseSettlementBody,
   parseSettlementHeader,
+  pickChallengeHeader,
   pickHeader,
 } from './x402.js';
 import { toCsv, toJsonl } from './exporter.js';
@@ -513,11 +514,26 @@ function assembleRecord(args: {
     ? parsePaymentHeader(obs.paymentHeader)
     : undefined;
 
+  // The header is passed unconditionally. `parseChallenge` prefers a decodable
+  // header over the body, and that precedence is right whether or not a body is
+  // also present: sellers serve both, and the body is a human-readable error
+  // ("price": "0.002000" USD) while the header is the machine-readable
+  // requirements ("amount": "2000" atomic). Making the header conditional on the
+  // body's absence — as this once did — silently substituted the former for the
+  // latter and failed `price_matches_challenge` on correct payments.
+  //
+  // Without a tap the 402 is only visible when it is the final response, but
+  // then its headers are right here — read them the same way, so the no-tap path
+  // does not fall back to the body for a reason the tapped path no longer does.
+  const challengeHeader =
+    obs.challengeHeader ??
+    (res?.status === 402 ? pickChallengeHeader(res.headers) : undefined);
+
   const parsedChallenge = parseChallenge(
     {
       body: obs.challengeBody ?? (res?.status === 402 ? resJson : undefined),
-      headerValue: obs.challengeRaw && !obs.challengeBody ? obs.challengeRaw : undefined,
-      rawBytes: obs.challengeRaw,
+      headerValue: challengeHeader,
+      rawBytes: obs.challengeRaw ?? challengeHeader,
     },
     payment ? { scheme: payment.scheme, network: payment.network } : undefined,
   );

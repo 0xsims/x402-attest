@@ -119,6 +119,7 @@ export class Batcher {
           verifyUrl: a.verifyUrl,
           envelope: a.envelope,
         };
+        if (a.verifyApiUrl) rebuilt.verifyApiUrl = a.verifyApiUrl;
         if (a.payloadCommitment) rebuilt.payloadCommitment = a.payloadCommitment;
         if (a.payloadHash) rebuilt.payloadHash = a.payloadHash;
         if (a.commitmentSalt) rebuilt.commitmentSalt = a.commitmentSalt;
@@ -246,6 +247,7 @@ export class Batcher {
         root: batch.root,
         attestationId: result.attestationId,
         verifyUrl: result.verifyUrl,
+        verifyApiUrl: result.verifyApiUrl,
         at: this.opts.now(),
         leafCount: batch.leaves.length,
         proofs: batch.proofs,
@@ -268,6 +270,7 @@ export class Batcher {
           root: batch.root,
           attestationId: result.attestationId,
           verifyUrl: result.verifyUrl,
+          verifyApiUrl: result.verifyApiUrl,
           envelope: batch.envelope,
         };
         if (result.payloadCommitment) receipt.payloadCommitment = result.payloadCommitment;

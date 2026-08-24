@@ -105,8 +105,15 @@ Passing the attested wrapper would make anchoring attest itself recursively. The
 is no way to detect this automatically, so it is documented at the option, in the
 README, and in the example.
 
-**Verification with no `verifyUrl` and no override is a fetch failure (exit 4).**
-Not a validity failure — the receipt may be perfectly good.
+**Verification with no verify URL and no override is a fetch failure (exit 4).**
+Not a validity failure — the receipt may be perfectly good. The verifier calls
+`verifyApiUrl`; a receipt written before 0.1.1 has only the human `verifyUrl`, and
+the `/v1/verify/{id}` path is derived from its origin rather than refused.
+
+**A pending anchor is exit 5, not exit 3, and never "invalid".** The node reports
+`signed-pending-hcs` for the 60-120s between submission and the tier-2 flush. The
+receipt is not verified during that window and `ok` stays false, but "not yet
+anchored" and "does not match" get different codes and different words.
 
 **A receipt file may hold one receipt, a JSON array, or JSONL.** All three occur in
 practice. With several, the CLI exits with the worst result.

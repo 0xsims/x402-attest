@@ -130,9 +130,12 @@ same construction this library implements.
 **One operational consequence:** per the 404 note, tiered attestations "resolve
 from the serving node's store" and cannot be found by a mirror-node scan. Verifying
 against a different federation node than the issuing one returns `found: false`.
-The keyless path already prefers the server-supplied `verifyUrl`; the keyed path
-builds it from `rubricBaseUrl` and will point at the wrong node in a multi-region
-deployment. Not yet fixed.
+Since 0.1.1 the receipt carries `verifyApiUrl`, built by `verifyApiUrlFrom` — the
+`/v1/verify/{id}` path is always ours, and the *origin* comes from the URL the
+server named when it named one, falling back to `rubricBaseUrl`. That keeps the
+keyless path pointed at the issuing node while no longer trusting the server for
+the path, which is what §18 is about. The keyed path has no server-supplied URL to
+learn an origin from and still uses `rubricBaseUrl`.
 
 ## 5. x402 header names: two generations, both supported
 
@@ -328,3 +331,191 @@ root".
 **What we do:** exit 2. It is a break in the chain from leaf to anchored root,
 which is what code 2 means. Exit 3 is reserved for a receipt that is internally
 valid and simply has not reached the ledger yet.
+
+---
+
+*Entries 16-19 were added on 2026-08-24, after the first live mainnet run. That
+run paid a real x402 v2 seller on Base and anchored the result on Hedera, and
+exposed four defects that no amount of testing against our own mocks would have
+found — three of them because the real wire is shaped differently than the mocks
+assumed, and one because the real node has a state the mocks never entered.*
+
+## 16. A 402 arrives as a header AND a body, and the header is authoritative
+
+**Spec / prior assumption:** the requirements arrive as *either* a
+`PAYMENT-REQUIRED` header *or* a 402 body, so the call site can pick whichever is
+present.
+
+**Observed live (BlockRun, x402 v2, Base mainnet, 2026-08-24).** A single 402
+carries all of these at once:
+
+```
+payment-required:    <b64>
+x-payment-required:  <b64>          # byte-identical to the above
+www-authenticate:    X402 requirements="<b64>"   # same b64, quoted
+content-type:        application/json
+```
+
+```json
+{ "error": "Payment Required", "message": "This endpoint requires x402 payment",
+  "price": { "amount": "0.002000", "currency": "USD" },
+  "paymentInfo": { "network": "base", "asset": "USDC", "x402Version": 2 } }
+```
+
+The header decodes to the machine-readable requirements — `accepts[0]` with
+`scheme`, `network`, `amount: "2000"` (atomic), `asset`, `payTo`,
+`maxTimeoutSeconds`, and an `extensions` block. The body is prose for a person: no
+`accepts`, no `payTo`, no `scheme`, no `network`, and a price of `"0.002000"` in
+**USD** where the header says `"2000"` **atomic**.
+
+**What went wrong.** `TapObservation` had one `challengeRaw` field carrying both
+the decoded header value and the raw body text, so the call site could not tell
+which it held and resorted to `obs.challengeRaw && !obs.challengeBody`. With both
+present, `challengeBody` is truthy, the header is discarded, and the USD figure
+is recorded as `maxAmountRequired`. `price_matches_challenge` then compares
+`"2000"` against `"0.002000"` and **fails on a completely correct payment**, while
+`payto_matches_challenge`, `scheme`, `network` and `asset` all drop to `unknown`.
+
+A spurious price-mismatch on an honest payment is the worst failure this library
+can produce. It discredits the assertion set, and the assertion set is the product.
+
+**What we do:** `TapObservation` now has a separate `challengeHeader`;
+`challengeRaw` keeps its one job of being the bytes to hash. The header is passed
+to `parseChallenge` unconditionally, whose existing header-over-body precedence is
+correct for v2 and must not be conditional on the body's absence. `www-authenticate`
+joined `CHALLENGE_HEADERS`, last, and only counts when the `X402` auth-scheme token
+is present — a `Bearer realm=...` on a 401 is not payment terms. The tap now also
+takes the first observation for all three challenge fields rather than letting a
+second 402 overwrite the header while the body kept the first, so the hashed bytes
+and the parsed record always describe the same 402.
+
+The same read is now done on the no-tap path, where a 402 that *is* the final
+response has its headers right there in `assembleRecord`.
+
+## 17. The observed x402 v2 `PAYMENT-SIGNATURE` payload
+
+**Spec / docs:** neither pins the payload schema. `docs.x402.org` names the header
+and says "base64-encoded JSON"; the OpenAPI document it links is an unmodified
+template (§5).
+
+**Read off the encoder on disk** — `@x402/core@2.23` `client/index.mjs` and
+`@x402/evm` `exact/client` — and confirmed by running it against the real BlockRun
+challenge. The header is `base64(JSON.stringify(paymentPayload))` where the
+payload is:
+
+```json
+{ "x402Version": 2,
+  "accepted": { "scheme": "exact", "network": "eip155:8453", "amount": "2000",
+                "asset": "0x8335…2913", "payTo": "0xe903…1aBf",
+                "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+  "payload": { "authorization": { "from": "0x…", "to": "0x…", "value": "2000",
+                                  "validAfter": "0", "validBefore": "…", "nonce": "0x…" },
+               "signature": "0x…" },
+  "resource": { "url": "…", "description": "…", "mimeType": "application/json" },
+  "extensions": { … } }
+```
+
+v1, for contrast, is `{ x402Version, scheme, network, payload }` — `scheme` and
+`network` at the top level and no `accepted` at all.
+
+**What went wrong.** `parsePaymentHeader` read only the v1 spellings. On a v2
+payload it found `amountAuthorized` and `payTo` (both reachable through
+`payload.authorization`) but returned `unknown` for `scheme`, `network` and
+`asset`, which silently turned `network_allowed` and `payto_allowed` into
+non-checks on a payment we could see perfectly well.
+
+**What we do:** read `accepted` as the v2 home for `scheme`, `network`, `asset`
+and the amount, keeping every v1 spelling working. The hash-only rule is unchanged:
+`parsePaymentHeader` hashes the header and the plaintext never leaves its stack
+frame — which is also why the test fixture for this could not be a wire capture,
+and is instead produced by re-running the encoder above (see below).
+
+**One thing the shape forced a choice on.** For the plain `exact` scheme,
+`payload.authorization.to` *is* `payTo`. For the escrow schemes (`upto`,
+auth-capture, permit2) it is a fixed token-collector contract —
+`0x0E3dF9510de65469C4518D7843919c0b8C7A7757` for EIP-3009 — and the payee is
+reached from there. Reading `to` would name the collector as the payee and fail
+`payto_matches_challenge` on an honest payment, which is the §16 mistake again.
+So on v2 the payee is read from `accepted.payTo`; v1 has no `accepted` and still
+reads `authorization.to`.
+
+**A second relocation, same cause.** v2 also hoists `resource` from each
+`accepts[]` entry to the envelope, as `{ url, description, mimeType }`. The
+challenge parser reads both homes; without that, `challenge.resource` was simply
+absent on every v2 receipt.
+
+**On the fixtures.** §4 records what happens when a mock encodes an assumption and
+is then used to validate it. The challenge capture here is provably not that: its
+sha256 equals the `challenge.rawHash` the live receipt recorded, and the request
+body's sha256 equals the recorded `request.bodyHash` — both asserted in
+`live-wire.test.ts`. The payment headers are the exception, and the reason is the
+hash-only rule above: nothing was retained to capture. Writing one by hand would
+have been exactly the §4 error, so they are generated by the shipping encoder
+signing the real challenge with an unfunded throwaway key, frozen, and re-checked
+against a fresh encoder run on every test pass.
+
+## 18. `verifyUrl` from Rubric is a human page; the verifier needs `verifyApiUrl`
+
+**Spec / prior assumption:** the server-supplied `verifyUrl` is authoritative and
+can be fetched by the verifier.
+
+**Observed live.** The keyless anchor returns
+
+```
+verifyUrl: https://rubric-protocol.com/audit/04264ea8-046a-410d-a77c-4d6a49c28b1d
+```
+
+which is HTTP 200, `content-type: text/html`, ~32KB of document — even when
+requested with `accept: application/json`. `verifyReceipt` fetched it and died on
+`Unexpected token '<', "<!DOCTYPE"`. The JSON API for the same record is
+`/v1/verify/{id}` on the same origin, and works.
+
+**What we do:** keep both, and keep them distinct.
+
+- `receipt.verifyUrl` stays the human page. It is the right thing to hand a
+  person, and it names the node that holds the record.
+- `receipt.verifyApiUrl` is new and always built locally by `verifyApiUrlFrom`.
+  The path is always ours; only the origin is taken from the server URL, which
+  matters because tiered attestations resolve from the issuing node's store (§4).
+- `verifyReceipt` uses `verifyApiUrl`, falling back to deriving `/v1/verify/{id}`
+  from `verifyUrl`'s origin for receipts written before 0.1.1.
+- A non-JSON response is reported as *"expected JSON from the verify API at …, got
+  text/html; this looks like the human audit page, not /v1/verify"* rather than as
+  a parser error. `checks.leafHash` and `checks.proof` still report `pass`, so it
+  reads as a plumbing problem, which it is.
+
+## 19. `signed-pending-hcs` is a pending state, not a failure
+
+**Spec:** step 3 "confirms ... status is `anchored`", with exit 3 for anything else.
+
+**Observed live**, verifying a receipt seconds after it was written:
+
+```json
+{ "status": "signed-pending-hcs", "verified": true, "payloadHashMatch": true,
+  "sequenceNumber": null, "aggregateBinding": null, "hcsExplorerUrl": null }
+```
+
+HCS anchoring happens at the next tier-2 flush, typically **60-120s** after
+submission. The same attestation read later returns `status: "anchored"` with a
+sequence number and a HashScan URL.
+
+**What went wrong.** `if (remote.status !== 'anchored') checks.anchored = 'fail'`
+meant every receipt verified inside that window — which is most of them, since the
+natural thing to do is verify right after anchoring — reported `fail` and printed
+`INVALID`. In a tamper-evidence tool that reads as "this record was altered".
+Crying wolf here is worse than saying nothing.
+
+**What we do:** `checks.anchored` gains a `pending` state, with its own exit code
+**5** and a reason that leads with what did verify. `ok` stays `false` — pending is
+not verified, and the receipt should be checked again — but the exit code, the
+check value and the CLI's verdict line (`PENDING`, not `INVALID`) all distinguish
+"not yet anchored" from "does not match". Exit 5 is the least severe nonzero code,
+so a real problem elsewhere in a batch still outranks it.
+
+`signed-pending-hcs` is the state observed; the classifier matches the family
+(`pending`, `buffer`, `queue`, `submitt`, `process`) so a renamed non-terminal
+state degrades to `pending` rather than to a false alarm. A status we genuinely
+cannot place still reports exit 3 — whose message says the batch has not reached
+the ledger, not that the record was altered. The commitment check runs *before*
+this one and is unchanged: a record still buffering but bound to the wrong payload
+is tampering, not impatience, and is still reported as such.
