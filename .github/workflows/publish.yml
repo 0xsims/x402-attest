@@ -11,9 +11,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
       - run: npm i -g npm@latest
       - run: npm ci
       - run: npm run build
-      - run: npm publish --access public -w @tempus1/x402-attest
-      - run: npm publish --access public -w @tempus1/clawrouter-attest
-      - run: npm publish --access public -w @tempus1/x402-verify-cli
+      - run: npm publish --access public
+        working-directory: packages/x402-attest
+      - run: npm publish --access public
+        working-directory: packages/clawrouter-attest
+      - run: npm publish --access public
+        working-directory: packages/verify-cli
