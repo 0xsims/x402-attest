@@ -1,6 +1,6 @@
 {
   "name": "@tempus1/x402-attest",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Drop-in attestation wrapper for x402 payment clients. Tamper-evident receipts for every paid call, verifiable by anyone.",
   "license": "MIT",
   "type": "module",
