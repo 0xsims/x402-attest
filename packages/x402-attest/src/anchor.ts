@@ -76,6 +76,32 @@ export function computeCommitment(salt: string, canonicalPayload: string): strin
   return createHash('sha256').update(salt + canonicalPayload).digest('hex');
 }
 
+/**
+ * Establish the opening salt for a commitment, and the payload key if one came.
+ *
+ * The two anchor paths disclose deliberately different things. The keyed
+ * endpoint returns `payloadKey` — the AES key for the payload Rubric holds
+ * encrypted — and the salt is derived from it here, locally. The keyless x402
+ * route never returns that key, because handing a decryption credential to
+ * whoever paid for an attestation is not something a payment should buy; it
+ * returns the already-derived `commitmentSalt` instead, which is one-way in the
+ * key and is all a verifier needs.
+ *
+ * Either way the receipt ends up carrying the salt and never the key. A salt
+ * that is not a sha256 digest is ignored rather than trusted into a receipt.
+ */
+function readCommitmentSalt(body: unknown): { commitmentSalt?: string; payloadKey?: string } {
+  if (!body || typeof body !== 'object') return {};
+  const o = body as Record<string, unknown>;
+  const key = o['payloadKey'];
+  if (typeof key === 'string' && key.length > 0) {
+    return { payloadKey: key, commitmentSalt: deriveCommitmentSalt(key) };
+  }
+  const salt = o['commitmentSalt'] ?? o['commitment_salt'];
+  if (typeof salt === 'string' && /^[0-9a-f]{64}$/.test(salt)) return { commitmentSalt: salt };
+  return {};
+}
+
 /** Read the commitment fields, tolerating both spellings seen in the wild. */
 function commitmentOf(body: unknown): { payloadCommitment?: string; payloadHash?: string } {
   if (!body || typeof body !== 'object') return {};
@@ -273,12 +299,8 @@ export class AnchorClient {
       });
     }
 
-    const payloadKey = (parsed as Record<string, unknown>)['payloadKey'];
-    let commitmentSalt: string | undefined;
-    if (typeof payloadKey === 'string' && payloadKey.length > 0) {
-      this.opts.onPayloadKey?.(attestationId, payloadKey);
-      commitmentSalt = deriveCommitmentSalt(payloadKey);
-    }
+    const { payloadKey, commitmentSalt } = readCommitmentSalt(parsed);
+    if (payloadKey) this.opts.onPayloadKey?.(attestationId, payloadKey);
 
     // The keyed path gets no human page from the server, so both point at the
     // API. `verifyApiUrl` is what the verifier uses either way.
@@ -355,12 +377,8 @@ export class AnchorClient {
     }
 
     const o = parsed as Record<string, unknown>;
-    const payloadKey = o['payloadKey'];
-    let commitmentSalt: string | undefined;
-    if (typeof payloadKey === 'string' && payloadKey.length > 0) {
-      this.opts.onPayloadKey?.(attestationId, payloadKey);
-      commitmentSalt = deriveCommitmentSalt(payloadKey);
-    }
+    const { payloadKey, commitmentSalt } = readCommitmentSalt(parsed);
+    if (payloadKey) this.opts.onPayloadKey?.(attestationId, payloadKey);
 
     // Two URLs, deliberately distinct.
     //
