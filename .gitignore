@@ -15,3 +15,5 @@ tarballs/
 .beta-12/wal/
 **/payload-keys.jsonl
 .env
+.screening-test/
+.validation/

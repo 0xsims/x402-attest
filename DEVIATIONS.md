@@ -675,6 +675,31 @@ leafHash pass · proof pass · envelopeRoot pass · commitment pass · anchored 
 binding: recomputed   exit 0
 ```
 
+**Re-confirmed independently.** Attestation `1afe26f4-8671-4c9f-b09e-40f8065fb0e2`,
+HCS sequence 292721, a second keyless anchor over x402 on 2026-08-27, run from a
+clean tree against the same live node:
+
+```
+leafHash pass · proof pass · envelopeRoot pass · commitment pass · anchored pass
+binding: recomputed   exit 0
+```
+
+The offline result is the one that carries the weight here: `verifyReceipt(r,
+{offline: true})` returns `commitment: 'pass'` with no network at all. Only a
+receipt that already records the injected member can recompute its own preimage,
+so an offline pass is unforgeable evidence that the member was folded in — the
+online run additionally confirms the node holds that commitment. The server
+stamped `payer: 0x754F…EBB8`, `amountAtomic: "5000"`, `network: eip155:8453`,
+none of which the client could have reconstructed.
+
+That run's response body carried exactly the top-level members of the pinned
+capture, none added and none missing, and the full suite passes against the fresh
+body as well as the committed one. Given that §4, §20 and §21 each traced to
+`test/mocks/rubric.ts` diverging from the live route, a second independent
+observation agreeing on the shape is the evidence that
+`test/fixtures/live-mainnet/x402-anchor-response.json` records the route's
+contract rather than a single sample.
+
 **Why the tests did not catch it.** The same place as §4 and §20, for a third
 time: `test/mocks/rubric.ts` committed to the payload it was handed. A mock that
 does not model the server's *injection* validates a client that cannot open a
