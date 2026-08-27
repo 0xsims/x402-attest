@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { execFile } from 'node:child_process';
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { withAttestation } from '../src/index.js';
@@ -217,6 +217,50 @@ describe('receipt verification', () => {
     expect(r.checks.commitment).toBe('unverifiable');
     expect(r.binding).toBe('none');
     expect(r.reason).toMatch(/no commitment available/);
+  });
+
+  it('falls back to a recorded binding when there is a commitment but no salt', async () => {
+    const [receipt] = await makeReceipt(1);
+    // What every keyless x402 receipt looks like: the node issued a commitment
+    // but returned no payload key, so no opening salt could be derived. The
+    // binding still holds — it just rests on the receipt's own word for what the
+    // commitment was, which detects a receipt pointed at the wrong attestation
+    // but not one whose commitment and root were fabricated together.
+    const { commitmentSalt: _s, ...noSalt } = receipt!;
+    const r = await verifyReceipt(noSalt as Receipt, { fetchImpl: fetch });
+
+    expect(r.ok).toBe(true);
+    expect(r.code).toBe(VERIFY_EXIT.VALID);
+    expect(r.binding).toBe('recorded');
+    expect(r.checks.commitment).toBe('pass');
+    // ...and it says which of the two checks ran, rather than letting a clean
+    // exit imply the stronger one.
+    expect(r.reason).toMatch(/matched by recorded value/);
+    expect(r.reason).not.toMatch(/recomputed/);
+  });
+
+  it('still verifies a real receipt anchored with no commitment material at all', async () => {
+    // `.prereg/receipt.json` — the preregistration anchor, attestation
+    // 47cfc0e4…, HCS sequence 291930. Real wire data, not a hand-built fixture:
+    // it was produced over the keyless x402 path, which returns neither a
+    // payload key nor a commitment, so it carries neither. A verifier that grew
+    // a stronger check must keep accepting it rather than rejecting evidence it
+    // simply cannot bind.
+    const raw = readFileSync(resolve(PKG, '..', '..', '.prereg', 'receipt.json'), 'utf8');
+    const receipt = JSON.parse(raw) as Receipt;
+    expect(receipt.attestationId).toBe('47cfc0e4-e54a-4f0f-a9d8-94fc09f49e1c');
+    expect(receipt.commitmentSalt).toBeUndefined();
+    expect(receipt.payloadCommitment).toBeUndefined();
+
+    // Offline: the local chain is the part that must not regress, and pinning a
+    // test to a live mainnet GET would make the suite fail on a network blip.
+    const r = await verifyReceipt(receipt, { offline: true });
+    expect(r.ok).toBe(true);
+    expect(r.checks.leafHash).toBe('pass');
+    expect(r.checks.proof).toBe('pass');
+    expect(r.checks.envelopeRoot).toBe('pass');
+    // Unbound, and reported as unbound.
+    expect(r.binding).toBe('none');
   });
 
   it('recomputes the commitment from the envelope and its opening salt', async () => {

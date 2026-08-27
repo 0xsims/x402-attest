@@ -212,7 +212,15 @@ export async function startMockRubric(options: MockRubricOptions = {}): Promise<
             settled: true,
             settlement: { txHash: '0x' + 'ab'.repeat(32), network: 'base' },
             attestationId,
-            payloadKey: PAYLOAD_KEY,
+            // NO payloadKey on this route, matching the live server: the key is
+            // a decryption credential and paying for an attestation does not buy
+            // it. The already-derived opening salt is returned instead, which is
+            // one-way in the key and is what a verifier actually needs.
+            //
+            // Returning the key here anyway is precisely how this mock hid the
+            // fact that the real keyless route returned neither, and that every
+            // keyless receipt was therefore unbound. See DEVIATIONS §20.
+            commitmentSalt: salt,
             payloadCommitment: commitment,
             payloadHash,
             algorithm: 'ML-DSA-65',

@@ -1,10 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { readFileSync, rmSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { readFileSync, rmSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import { createTap, withAttestation } from '../src/index.js';
-import type { AnyReceipt, CallRecord, FetchLike } from '../src/types.js';
+import { createTap, withAttestation, type AttestedFetch } from '../src/index.js';
+import { verifyReceipt } from '../src/verify.js';
+import { isAnchored, type AnyReceipt, type CallRecord, type FetchLike } from '../src/types.js';
 import { startMockSeller, type MockSeller } from './mocks/seller.js';
-import { startMockRubric, tmpWal, type MockRubric } from './mocks/rubric.js';
+import { PAYLOAD_KEY, startMockRubric, tmpWal, type MockRubric } from './mocks/rubric.js';
 import { createMockX402Fetch } from './mocks/x402client.js';
 
 /**
@@ -38,6 +40,8 @@ describe('no plaintext ever leaves the process', () => {
   let walPath: string;
   /** Every byte handed to an outbound fetch that this library originated. */
   let outbound: string[];
+  /** The wrapper from the most recent `run()`, for exercising `exportReceipts`. */
+  let lastFetch: AttestedFetch<FetchLike> | undefined;
 
   beforeEach(async () => {
     seller = await startMockSeller({
@@ -51,6 +55,7 @@ describe('no plaintext ever leaves the process', () => {
     rubric = await startMockRubric();
     walPath = tmpWal('no-plaintext');
     outbound = [];
+    lastFetch = undefined;
   });
 
   afterEach(async () => {
@@ -83,6 +88,7 @@ describe('no plaintext ever leaves the process', () => {
       onReceipt: (r) => receipts.push(r),
       ...over,
     });
+    lastFetch = fetchAndPay;
 
     const res = await fetchAndPay(`${seller.url}/v1/chat/completions?apikey=${REQ_SENTINEL}`, {
       method: 'POST',
@@ -230,6 +236,72 @@ describe('no plaintext ever leaves the process', () => {
     expect(outbound.join('\n')).not.toContain(header);
     expect(readFileSync(join(walPath, 'leaves.jsonl'), 'utf8')).not.toContain(header);
     expect(receipts[0]!.callRecord.payment!.xPaymentHash).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  /**
+   * MANDATORY: the payload decryption key is a credential, not evidence.
+   *
+   * Rubric's keyed anchor path hands back `payloadKey` — the AES key that
+   * decrypts the payload it holds in its warm store — with the response. The
+   * library keeps it, because losing it makes the submitted payload
+   * unrecoverable, but it keeps it in exactly one place: a 0600 file next to the
+   * WAL. It must never reach a receipt, an export or a verifier's output, all
+   * three of which are meant to be handed to strangers.
+   *
+   * The salt is the opposite: safe to publish, and it is what makes a receipt
+   * independently verifiable. The two differ by one SHA-256, which is precisely
+   * why a regression here would be easy to miss and impossible to walk back.
+   */
+  it('never lets the payload decryption key into a receipt, an export, or a verify result', async () => {
+    const receipts = await run();
+    // Guard the guard: an empty or trivial sentinel would make every assertion
+    // below vacuously true.
+    expect(PAYLOAD_KEY).toMatch(/^[0-9a-f]{64}$/);
+
+    // 1. The receipts handed to callers — and the one place they legitimately
+    //    carry commitment material, to prove this is not just an absent field.
+    const anchored = receipts.filter(isAnchored);
+    expect(anchored.length).toBeGreaterThan(0);
+    expect(anchored[0]!.commitmentSalt).toMatch(/^[0-9a-f]{64}$/);
+    expect(JSON.stringify(receipts)).not.toContain(PAYLOAD_KEY);
+
+    // 2. Both export formats — the file an auditor actually receives.
+    expect(lastFetch!.exportReceipts({ format: 'jsonl' })).not.toContain(PAYLOAD_KEY);
+    expect(lastFetch!.exportReceipts({ format: 'csv' })).not.toContain(PAYLOAD_KEY);
+
+    // 3. The verifier's own output, which gets pasted into tickets and CI logs.
+    for (const r of anchored) {
+      const result = await verifyReceipt(r, { fetchImpl: fetch });
+      expect(result.checks.commitment).toBe('pass');
+      expect(JSON.stringify(result)).not.toContain(PAYLOAD_KEY);
+    }
+
+    // 4. The wire, and the two WAL files that are not the key file.
+    assertClean(outbound.join('\n'), 'outbound payloads');
+    expect(outbound.join('\n')).not.toContain(PAYLOAD_KEY);
+    expect(readFileSync(join(walPath, 'leaves.jsonl'), 'utf8')).not.toContain(PAYLOAD_KEY);
+    expect(readFileSync(join(walPath, 'anchors.jsonl'), 'utf8')).not.toContain(PAYLOAD_KEY);
+  });
+
+  it('publishes the salt while withholding the key it is one SHA-256 away from', async () => {
+    const receipts = await run();
+    const [anchored] = receipts.filter(isAnchored);
+    expect(anchored).toBeDefined();
+
+    // salt = SHA-256(payloadKeyHex + ':rubric-commit-v1'), read from the server
+    // implementation rather than inferred from a passing test.
+    const salt = createHash('sha256').update(`${PAYLOAD_KEY}:rubric-commit-v1`).digest('hex');
+    expect(anchored!.commitmentSalt).toBe(salt);
+
+    const serialized = JSON.stringify(anchored);
+    expect(serialized).toContain(salt);
+    expect(serialized).not.toContain(PAYLOAD_KEY);
+
+    // The key is retained, exactly once, in a file the WAL creates 0600 — it is
+    // the only way to recover the payload from Rubric's store later.
+    const keyFile = join(walPath, 'payload-keys.jsonl');
+    expect(readFileSync(keyFile, 'utf8')).toContain(PAYLOAD_KEY);
+    expect(statSync(keyFile).mode & 0o777).toBe(0o600);
   });
 
   it('sends only a root and counts to Rubric — no per-call detail at all', async () => {

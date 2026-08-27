@@ -519,3 +519,67 @@ cannot place still reports exit 3 — whose message says the batch has not reach
 the ledger, not that the record was altered. The commitment check runs *before*
 this one and is unchanged: a record still buffering but bound to the wrong payload
 is tampering, not impatience, and is still reported as such.
+
+## 20. The keyless x402 endpoint returns no commitment material, so keyless receipts are unbound
+
+**Symptom.** Every receipt produced over the keyless (x402-paid) anchor path
+verifies as `commitment: unverifiable` — the weakest of the three outcomes §4
+defines. Reproduced against the live preregistration receipt (attestation
+`47cfc0e4-e54a-4f0f-a9d8-94fc09f49e1c`, HCS sequence 291930):
+
+```
+leafHash pass · proof pass · envelopeRoot pass · anchored pass · commitment unverifiable
+```
+
+**Where the fault is not.** `deriveCommitmentSalt()` and `computeCommitment()`
+implement the confirmed scheme; both `AnchorClient` paths call them and return
+`commitmentSalt`/`payloadCommitment`; `Batcher` propagates both at all three
+receipt-assembly sites; `verifyReceipt` recomputes from them and upgrades the
+binding to `recomputed`. That is the 0.1.2 behaviour and it is correct — against
+the **keyed** path it produces `binding: 'recomputed'` end to end.
+
+**Where the fault is.** The server's keyless route does not return the fields.
+`POST /v1/x402/tiered-attest` mints internally against `/v1/tiered-attest` — the
+keyed endpoint, which *does* return `payloadKey` and `payloadCommitment` — and
+then forwards only `attestationId` and `status` onto its own response body. The
+payload key and the commitment are dropped at that hop. No client change can
+recover them: the client never sees them.
+
+So the client writes no `payload-keys.jsonl` on this path, derives no salt, and
+records no commitment. `.prereg/receipt.json`, `.beta-12/rows.json` and the
+`.live-run` receipts were all produced this way and all carry neither.
+
+**Consequences, stated plainly:**
+
+- Keyed receipts (`rubricApiKey` set) bind at `recomputed`: fully trustless.
+- Keyless receipts bind at nothing. The chain
+  `callRecord → leafHash → proof → root → envelope.root` is intact and locally
+  checkable, and the attestation is anchored — but nothing ties the envelope to
+  the anchored record. The receipt is **valid but unbound**, and the verifier
+  says exactly that rather than letting a zero exit imply more.
+
+**Why this was not caught by the tests.** The same failure §4 records, in the same
+place. `test/mocks/rubric.ts` returns `payloadKey` and `payloadCommitment` on
+*both* routes, so the keyless path was validated against a mock that is more
+generous than the server. The mock now stands corrected only in the sense that we
+know the divergence exists; the tests that assert `recomputed` run over the keyed
+path, and `verify-cli.test.ts` pins the real unbound `.prereg` receipt as a
+fixture so the keyless reality is represented by wire data rather than by a mock.
+
+**Backfill is not possible.** The obvious repair — recover the payload keys from
+the WALs and derive the salts — cannot be done: the keys were never returned, so
+they were never written. `.prereg/wal/` and `.beta-12/wal/` contain
+`leaves.jsonl` and `anchors.jsonl` and no `payload-keys.jsonl` at all.
+
+Copying the commitment the public verify endpoint reports into those receipts
+would produce `binding: 'recorded'` and is deliberately **not** done. That check
+compares the receipt's stored commitment against the node's; filling the receipt
+*from* the node makes it a comparison of a value with itself, which proves
+nothing while reading like a stronger result. An unbound receipt that says it is
+unbound is worth more than a bound-looking one that is circular.
+
+**The fix belongs on the server**: forward the commitment through the x402 route,
+and preferably the salt — `SHA-256(payloadKeyHex + ':rubric-commit-v1')` —
+computed server-side, so the keyless path gains `recomputed` binding without the
+AES key ever crossing the wire. Until that ships, keyless receipts remain
+valid-but-unbound and `commitment: 'unverifiable'` is the honest report.

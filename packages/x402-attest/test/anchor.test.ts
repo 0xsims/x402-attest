@@ -196,6 +196,44 @@ describe('AnchorClient — keyless x402 path', () => {
     expect(result.verifyUrl).toBe('https://eu.rubric-protocol.com/v1/verify/att-x402');
   });
 
+  it('takes the opening salt from the server when no payload key is returned', async () => {
+    // The live keyless route never returns `payloadKey` — it is a decryption
+    // credential, and paying $0.005 for an attestation does not buy it. It
+    // returns the already-derived salt, which is one-way in that key.
+    const salt = 'c'.repeat(64);
+    const keys: string[] = [];
+    const client = new AnchorClient({
+      baseUrl: 'https://rubric-protocol.com',
+      endpoint: 'tiered',
+      subjectId: 's',
+      anchorFetch: async () =>
+        json(200, {
+          attestationId: 'att-salt',
+          commitmentSalt: salt,
+          payloadCommitment: 'd'.repeat(64),
+        }),
+      onPayloadKey: (_id, k) => keys.push(k),
+    });
+
+    const result = await client.anchor(ENVELOPE);
+    expect(result.commitmentSalt).toBe(salt);
+    expect(result.payloadCommitment).toBe('d'.repeat(64));
+    // Nothing to retain: there was no key, so the restricted key log stays empty.
+    expect(keys).toEqual([]);
+  });
+
+  it('ignores a malformed salt rather than writing it into a receipt', async () => {
+    const client = new AnchorClient({
+      baseUrl: 'https://rubric-protocol.com',
+      endpoint: 'tiered',
+      subjectId: 's',
+      anchorFetch: async () => json(200, { attestationId: 'att-bad', commitmentSalt: 'not-a-digest' }),
+    });
+    // A salt that cannot be a sha256 digest would recompute to a commitment that
+    // matches nothing, turning a server quirk into a tampering accusation.
+    expect((await client.anchor(ENVELOPE)).commitmentSalt).toBeUndefined();
+  });
+
   it('falls back to the configured base URL when none is served', async () => {
     const client = new AnchorClient({
       baseUrl: 'https://rubric-protocol.com',
