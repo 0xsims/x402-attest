@@ -6,6 +6,7 @@ coverage/
 .tmp-test/
 *.log
 .tmp-example/
+.tmp-capture/
 tarballs/
 .live-run/
 

@@ -1,7 +1,13 @@
 import { AnchorClient, AnchorError, backoffDelay, buildEnvelope } from './anchor.js';
 import { buildMerkleTree, buildProof } from './merkle.js';
 import { Wal, type AnchorEntry, type LeafEntry } from './wal.js';
-import type { AnyReceipt, ProofStep, Receipt, ResolvedOptions } from './types.js';
+import type {
+  AnyReceipt,
+  ProofStep,
+  Receipt,
+  RecordedEnvelope,
+  ResolvedOptions,
+} from './types.js';
 
 /**
  * Batching and anchoring.
@@ -123,6 +129,10 @@ export class Batcher {
         if (a.payloadCommitment) rebuilt.payloadCommitment = a.payloadCommitment;
         if (a.payloadHash) rebuilt.payloadHash = a.payloadHash;
         if (a.commitmentSalt) rebuilt.commitmentSalt = a.commitmentSalt;
+        // Recombine what was submitted with what the server injected, because the
+        // commitment covers the pair. A copy, not a mutation: `a.envelope` stays
+        // the submitted bytes and `root` is untouched either way.
+        if (a.x402Payment) rebuilt.envelope = { ...a.envelope, x402Payment: a.x402Payment };
         this.receipts.set(callId, rebuilt);
       }
     }
@@ -256,11 +266,25 @@ export class Batcher {
       if (result.payloadCommitment) entry.payloadCommitment = result.payloadCommitment;
       if (result.payloadHash) entry.payloadHash = result.payloadHash;
       if (result.commitmentSalt) entry.commitmentSalt = result.commitmentSalt;
+      if (result.x402Payment) entry.x402Payment = result.x402Payment;
       // Durable before it is observable: the anchor line is fsynced before any
       // receipt claims to be anchored, so a crash cannot leave a caller holding an
       // attestationId that the WAL has no record of.
       this.wal.appendAnchor(entry);
       this.retrying.delete(batch.batchId);
+
+      // The payload the commitment actually covers.
+      //
+      // Rubric's keyless route commits to the submitted envelope plus an
+      // `x402Payment` member it injects server-side (DEVIATIONS §21), so a
+      // receipt recording only what was submitted cannot open its own
+      // commitment. Extended by copy, once per batch: `batch.envelope` is the
+      // object the root was built into and the one a retry re-submits, and it
+      // must go back over the wire byte-identical. `root` is the same in both,
+      // so the `envelope.root` check is unaffected either way.
+      const committedEnvelope: RecordedEnvelope = result.x402Payment
+        ? { ...batch.envelope, x402Payment: result.x402Payment }
+        : batch.envelope;
 
       for (const leaf of batch.leaves) {
         const receipt: Receipt = {
@@ -271,7 +295,7 @@ export class Batcher {
           attestationId: result.attestationId,
           verifyUrl: result.verifyUrl,
           verifyApiUrl: result.verifyApiUrl,
-          envelope: batch.envelope,
+          envelope: committedEnvelope,
         };
         if (result.payloadCommitment) receipt.payloadCommitment = result.payloadCommitment;
         if (result.payloadHash) receipt.payloadHash = result.payloadHash;

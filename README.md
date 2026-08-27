@@ -417,7 +417,9 @@ Across several receipts the worst result wins, and pending is the least severe
 nonzero code: a real problem in any receipt still outranks it. In CI, treat 5 as
 "retry shortly" rather than as a gate failure.
 
-Flags: `--offline` (hash and proof only, no network), `--json`, `--quiet`,
+Flags: `--offline` (no network: hash, proof, envelope root, and — when the receipt
+carries an opening salt — whether the envelope opens the commitment it records),
+`--json`, `--quiet`,
 `--verify-url <url>`, `--timeout <ms>`. Input may be one receipt, a JSON array, or
 JSONL; with several, the exit code is the worst result.
 
@@ -471,8 +473,19 @@ attestation, but not one whose root and commitment were fabricated together.
 `'none'`, with `commitment: 'unverifiable'`, means nothing could bind the payload
 at all. Neither is ever silently reported as a clean pass.
 
+**The envelope in a keyless receipt carries a member you did not send.** Rubric's
+x402-paid route does not commit to the payload the client submits — it wraps it in
+an `x402Payment` block naming the payer, the atomic amount and the network the
+facilitator actually settled, and commits to the pair. The receipt therefore
+records the payload *as committed*, that member included, because that is the
+preimage the salt opens. It is returned with the salt and recorded verbatim; the
+`root` is identical either way, so `envelope.root` still checks the proof chain.
+Receipts anchored before the route returned it cannot open their commitment and
+report `commitment: FAIL` rather than skipping the check. See DEVIATIONS §21.
+
 An altered envelope is caught locally, before any network call, because the
-commitment no longer opens.
+commitment no longer opens — including a single altered byte of that injected
+member.
 
 ---
 

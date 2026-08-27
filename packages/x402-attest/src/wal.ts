@@ -11,7 +11,13 @@ import {
 } from 'node:fs';
 import { join } from 'node:path';
 import { sha256Jcs } from './hash.js';
-import type { BatchEnvelope, CallRecord, ProofStep, WalOptions } from './types.js';
+import type {
+  BatchEnvelope,
+  CallRecord,
+  ProofStep,
+  WalOptions,
+  X402PaymentMember,
+} from './types.js';
 
 /**
  * Append-only write-ahead log.
@@ -65,6 +71,17 @@ export type AnchorEntry = {
   payloadHash?: string;
   /** Opening salt; safe to persist, unlike the payload key it derives from. */
   commitmentSalt?: string;
+  /**
+   * The member Rubric injected into the payload before committing to it.
+   *
+   * Persisted beside `envelope` rather than folded into it, so this file keeps
+   * saying what was actually submitted. The committed payload is the two
+   * combined, and `Batcher.adoptAnchors` recombines them on replay — without
+   * this line a restarted process rebuilds receipts that cannot open their own
+   * commitment. Absent on anchor lines written before 0.1.4, and on every keyed
+   * anchor.
+   */
+  x402Payment?: X402PaymentMember;
 };
 
 export type WalReplay = {

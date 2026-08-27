@@ -1,6 +1,6 @@
 {
   "name": "@tempus1/x402-verify-cli",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Standalone verifier for x402 attestation receipts. No API key, no network account, no trust in the agent that produced the receipt.",
   "license": "MIT",
   "type": "module",
@@ -18,7 +18,7 @@
     "build": "tsc -b"
   },
   "dependencies": {
-    "@tempus1/x402-attest": "0.1.3"
+    "@tempus1/x402-attest": "0.1.4"
   },
   "publishConfig": {
     "access": "public"

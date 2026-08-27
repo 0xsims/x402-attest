@@ -583,3 +583,110 @@ and preferably the salt — `SHA-256(payloadKeyHex + ':rubric-commit-v1')` —
 computed server-side, so the keyless path gains `recomputed` binding without the
 AES key ever crossing the wire. Until that ships, keyless receipts remain
 valid-but-unbound and `commitment: 'unverifiable'` is the honest report.
+
+**Resolved in 0.1.3, and immediately exposed a second half.** The server now
+returns `commitmentSalt` and `payloadCommitment` on the keyless route, and the
+client wires them through. That turned `unverifiable` into a loud `FAIL` rather
+than a pass, because the salt alone does not open a keyless commitment — see §21.
+Receipts anchored before 0.1.3, including the preregistration anchor pinned in
+`verify-cli.test.ts`, still carry no commitment material and are still reported
+as `binding: 'none'`. That has not changed and cannot be backfilled.
+
+---
+
+## 21. The keyless route commits to the submitted payload plus a server-injected `x402Payment`
+
+**Symptom.** With §20's fix shipped, a live keyless anchor produced a receipt that
+carried a salt and a commitment and *still* did not verify — correctly, and
+loudly. Reproduced against attestation `43396a10-548b-43e5-8a87-e2ad8dee1568`,
+anchored on 2026-08-27 (fixture:
+`test/fixtures/live-mainnet/keyless-preinjection-receipt.json`):
+
+```
+commitment  FAIL  (recomputed)
+the envelope does not open its commitment: recomputes to 31774630e2…,
+receipt records 84728a45a5…
+```
+
+**Where the fault is.** `POST /v1/x402/tiered-attest` does not commit to what the
+client submits. Before minting internally it wraps the payload:
+
+```js
+data: {
+  ...((req.body && req.body.data) || {}),
+  x402Payment: { x402Version, scheme, network, asset, amountAtomic, payer },
+},
+```
+
+So the committed payload is **the submitted envelope plus an injected
+`x402Payment` member**. The client cannot reconstruct it — it never learns the
+payer address the facilitator verified, the atomic price the server charged, or
+which x402 generation the payment settled under. It therefore canonicalises
+different bytes and computes a different digest. The commitment was never wrong;
+the preimage was incomplete.
+
+The `|| {}` matters too: a keyless post carrying no `data` commits to the payment
+block alone.
+
+**Confirmed, not inferred.** Against the failing receipt above, with the payer
+recovered from the node's own log:
+
+```
+SHA-256(salt + JCS(envelope))                      = 31774630e2…   (what 0.1.3 computed)
+SHA-256(salt + JCS({...envelope, x402Payment}))    = 84728a45a5…   (what the receipt records)
+```
+
+**The fix, both ends.** The server returns the injected member as `x402Payment`
+alongside `commitmentSalt` and `payloadCommitment`. `AnchorClient` reads it —
+verbatim, unnormalised, since it is part of the canonicalised preimage and
+dropping a field this client does not recognise would break the very commitment
+it opens — and `Batcher` records `{...submittedEnvelope, x402Payment}` as the
+receipt's `envelope`.
+
+Two things this deliberately does **not** do:
+
+- **It does not mutate the submitted envelope.** That object is what `root` was
+  built into and what a retry re-submits; it must go back over the wire
+  byte-identical. The recorded envelope is a copy. `root` is the same in both, so
+  the `envelope.root` check is unaffected — `keyless-envelope.test.ts` asserts
+  both, including that nothing with an `x402Payment` member is ever posted.
+- **It does not hand-order anything.** RFC 8785 sorts keys, so an appended member
+  canonicalises identically to one present from the start.
+
+**The WAL keeps the two apart.** `AnchorEntry.envelope` remains the submitted
+payload and `AnchorEntry.x402Payment` sits beside it, in the same conditional
+style as the existing commitment fields. `adoptAnchors` recombines them on
+replay. Anchor lines written before 0.1.4 have no such field and replay
+unchanged.
+
+**Pre-change receipts still FAIL, on purpose.** A keyless receipt anchored
+without the member cannot open its commitment, and no amount of client
+tolerance changes that. Skipping the check when `x402Payment` is absent would
+convert every one of those receipts into a silent pass, which is the failure
+mode this library exists to prevent. They report `commitment: FAIL` with the
+message above, and that is the honest answer.
+
+**Verified live.** Attestation `61322499-b5cf-460e-a048-52504ccf2a5e`, HCS
+sequence 292711, anchored keyless over x402 against the patched server on
+2026-08-27 and pinned as `test/fixtures/live-mainnet/keyless-bound-receipt.json`:
+
+```
+leafHash pass · proof pass · envelopeRoot pass · commitment pass · anchored pass
+binding: recomputed   exit 0
+```
+
+**Why the tests did not catch it.** The same place as §4 and §20, for a third
+time: `test/mocks/rubric.ts` committed to the payload it was handed. A mock that
+does not model the server's *injection* validates a client that cannot open a
+live commitment. The mock now wraps the payload exactly as the route does and
+returns the member with it, and its keyless response body is copied field for
+field — and in field order — from a captured live 200
+(`test/fixtures/live-mainnet/x402-anchor-response.json`, written by
+`examples/capture-keyless-response.mjs`).
+
+That capture also removed a field the mock had invented: it returned
+`payloadHash` on the keyless route, which the live route does not send. The
+observed body carries a `vsr` member (a VSR-0.4 delivery receipt, ~8KB of ML-DSA
+signature) which the mock omits — nothing in this library reads it, and a mock
+returning *less* than the server cannot manufacture a passing test. Returning
+*more* is what caused all three of these.

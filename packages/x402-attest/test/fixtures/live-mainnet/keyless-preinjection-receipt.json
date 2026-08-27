@@ -1,0 +1,105 @@
+{
+  "callRecord": {
+    "v": 1,
+    "callId": "01a040d1-3c82-7000-9790-a376af63574e",
+    "subjectId": "rubric-substitution-study",
+    "startedAt": "2026-08-27T01:24:09.474Z",
+    "endedAt": "2026-08-27T01:24:09.573Z",
+    "durationMs": 99,
+    "request": {
+      "method": "POST",
+      "host": "preregistration.local",
+      "path": "/99489f57a1d1d64d2139d39798683c60b3d6afa6259882af13c70194ea705cff",
+      "bodyHash": "15047f0abaa41c70fb7c091f2850d75edd03bed1ccb3d5d5daf13d97f45f7056",
+      "bodyBytes": 135,
+      "contentType": "application/json"
+    },
+    "response": {
+      "status": 200,
+      "bodyHash": "f7d277eea1ae8fa094f3fe46602db3fb92c746786bcdac33421d406c2b189187",
+      "bodyBytes": 124,
+      "headers": {
+        "content-type": "application/json"
+      }
+    },
+    "outcome": "ok",
+    "assertions": [
+      {
+        "id": "price_matches_challenge",
+        "result": "unknown",
+        "detail": "no payment observed"
+      },
+      {
+        "id": "payto_matches_challenge",
+        "result": "unknown",
+        "detail": "payee not observable on both sides"
+      },
+      {
+        "id": "network_allowed",
+        "result": "unknown",
+        "expected": "eip155:8453",
+        "detail": "no network observed"
+      },
+      {
+        "id": "payto_allowed",
+        "result": "unknown",
+        "detail": "policy.allowedPayTo not set"
+      },
+      {
+        "id": "price_within_policy",
+        "result": "unknown",
+        "expected": "0.05",
+        "detail": "no priceable amount observed"
+      },
+      {
+        "id": "budget_within_cap",
+        "result": "unknown",
+        "observed": "0",
+        "expected": "0.10",
+        "detail": "current call not priceable; cumulative figure is a lower bound"
+      },
+      {
+        "id": "settled",
+        "result": "unknown",
+        "detail": "no payment made"
+      },
+      {
+        "id": "model_matches_request",
+        "result": "unknown",
+        "detail": "not an LLM route, or no model field present"
+      }
+    ],
+    "sessionId": "preregistration-v1",
+    "settlement": {
+      "success": false,
+      "source": "none"
+    }
+  },
+  "leafHash": "5ffb09aed07eb18f3d79203694a1bf4de03cc7a11bded7e30485cb1a56ed73f9",
+  "proof": [],
+  "root": "a7eb92e877e870722ce15ee468f8729de8199e1fa298ccf6312a435118d1ffa3",
+  "attestationId": "43396a10-548b-43e5-8a87-e2ad8dee1568",
+  "verifyUrl": "https://rubric-protocol.com/audit/43396a10-548b-43e5-8a87-e2ad8dee1568",
+  "verifyApiUrl": "https://rubric-protocol.com/v1/verify/43396a10-548b-43e5-8a87-e2ad8dee1568",
+  "envelope": {
+    "schemaVersion": "rubric.x402-attest/v1",
+    "leafType": "DATA_RECORD",
+    "root": "a7eb92e877e870722ce15ee468f8729de8199e1fa298ccf6312a435118d1ffa3",
+    "leafCount": 1,
+    "firstCallId": "01a040d1-3c82-7000-9790-a376af63574e",
+    "lastCallId": "01a040d1-3c82-7000-9790-a376af63574e",
+    "timeRange": {
+      "from": "2026-08-27T01:24:09.474Z",
+      "to": "2026-08-27T01:24:09.573Z"
+    },
+    "subjectId": "rubric-substitution-study",
+    "merkle": {
+      "hash": "sha256",
+      "leafPrefix": "0x00",
+      "nodePrefix": "0x01",
+      "oddNode": "promote"
+    }
+  },
+  "payloadCommitment": "84728a45a58d026f5b7859b3f488932c5b07f9124e9a59e39ae6b4c76eb48fb3",
+  "commitmentSalt": "d5b041939ea691090938ad6aeca3e5c8c97cb9b7201579b3c7c9eb3ca4b101e6"
+}

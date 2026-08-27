@@ -1,6 +1,11 @@
 import { createHash } from 'node:crypto';
 import { MERKLE_PARAMS } from './merkle.js';
-import { BATCH_SCHEMA_VERSION, type BatchEnvelope, type FetchLike } from './types.js';
+import {
+  BATCH_SCHEMA_VERSION,
+  type BatchEnvelope,
+  type FetchLike,
+  type X402PaymentMember,
+} from './types.js';
 
 /**
  * Rubric anchoring client.
@@ -43,6 +48,14 @@ export type AnchorResult = {
    * Safe to place in a receipt; the key it came from is not.
    */
   commitmentSalt?: string;
+  /**
+   * The payment block Rubric injected into the payload before committing to it.
+   *
+   * Present on the keyless path only. Without it the salt opens nothing, because
+   * the bytes the commitment covers are not the bytes we sent — see
+   * `x402PaymentOf` and DEVIATIONS §21.
+   */
+  x402Payment?: X402PaymentMember;
   /** Path actually taken, recorded so a receipt can be traced to how it was paid. */
   via: 'tiered' | 'direct' | 'x402';
   raw: unknown;
@@ -112,6 +125,31 @@ function commitmentOf(body: unknown): { payloadCommitment?: string; payloadHash?
   if (typeof c === 'string' && c.length > 0) out.payloadCommitment = c;
   if (typeof h === 'string' && h.length > 0) out.payloadHash = h;
   return out;
+}
+
+/**
+ * Read the payment block Rubric injects into the payload before committing.
+ *
+ * The keyless route does not commit to what the client sent. It wraps it:
+ *
+ *   data: { ...(req.body.data || {}), x402Payment: { x402Version, scheme,
+ *           network, asset, amountAtomic, payer } }
+ *
+ * The client cannot reconstruct that member — it never learns the payer address,
+ * the atomic amount or the network the server stamped in — so the opening salt
+ * alone is not sufficient and every keyless receipt recomputed to the wrong
+ * digest. The member has to come back with the salt, and it does. DEVIATIONS §21.
+ *
+ * Returned verbatim, unnormalised. It is part of the canonicalised preimage: any
+ * reshaping here — dropping an unknown field, coercing a number — changes what it
+ * canonicalises to and breaks the very commitment it exists to open.
+ */
+function x402PaymentOf(body: unknown): X402PaymentMember | undefined {
+  if (!body || typeof body !== 'object') return undefined;
+  const o = body as Record<string, unknown>;
+  const m = o['x402Payment'] ?? o['x402_payment'];
+  if (!m || typeof m !== 'object' || Array.isArray(m)) return undefined;
+  return m as X402PaymentMember;
 }
 
 export class AnchorError extends Error {
@@ -300,6 +338,7 @@ export class AnchorClient {
     }
 
     const { payloadKey, commitmentSalt } = readCommitmentSalt(parsed);
+    const x402Payment = x402PaymentOf(parsed);
     if (payloadKey) this.opts.onPayloadKey?.(attestationId, payloadKey);
 
     // The keyed path gets no human page from the server, so both point at the
@@ -312,6 +351,12 @@ export class AnchorClient {
       verifyApiUrl,
       ...commitmentOf(parsed),
       ...(commitmentSalt ? { commitmentSalt } : {}),
+      // Read on this path too, though the keyed endpoint has never sent it: the
+      // field means "this is what I injected into your payload", which is a
+      // claim about the commitment, not about the route. Honouring it wherever
+      // it appears is what keeps the recorded envelope equal to the committed
+      // one if Rubric ever starts wrapping here as well.
+      ...(x402Payment ? { x402Payment } : {}),
       via: this.opts.endpoint,
       raw: parsed,
     };
@@ -378,6 +423,10 @@ export class AnchorClient {
 
     const o = parsed as Record<string, unknown>;
     const { payloadKey, commitmentSalt } = readCommitmentSalt(parsed);
+    // The route committed to our envelope plus this member. Recording one
+    // without the other produces a receipt that recomputes to a digest matching
+    // nothing — which is exactly what 0.1.3 did, loudly and correctly.
+    const x402Payment = x402PaymentOf(parsed);
     if (payloadKey) this.opts.onPayloadKey?.(attestationId, payloadKey);
 
     // Two URLs, deliberately distinct.
@@ -402,6 +451,7 @@ export class AnchorClient {
       verifyApiUrl: verifyApiUrlFrom(this.opts.baseUrl, verifyUrl, attestationId),
       ...commitmentOf(parsed),
       ...(commitmentSalt ? { commitmentSalt } : {}),
+      ...(x402Payment ? { x402Payment } : {}),
       via: 'x402',
       raw: parsed,
     };

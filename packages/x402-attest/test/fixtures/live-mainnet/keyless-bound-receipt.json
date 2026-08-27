@@ -1,0 +1,113 @@
+{
+  "callRecord": {
+    "v": 1,
+    "callId": "01a040df-01f0-7000-b6ba-8d8118169933",
+    "subjectId": "keyless-response-capture",
+    "startedAt": "2026-08-27T01:39:11.984Z",
+    "endedAt": "2026-08-27T01:39:12.158Z",
+    "durationMs": 174,
+    "request": {
+      "method": "POST",
+      "host": "capture.local",
+      "path": "/keyless",
+      "bodyHash": "d218350ad21502c86608bc6afad2500b72b778a520762b03b9bc6bfaadc3f7d4",
+      "bodyBytes": 16,
+      "contentType": "application/json"
+    },
+    "response": {
+      "status": 200,
+      "bodyHash": "75769f99add9e420c2778392602aab8451325d727f2709f6efccbe370345bdaf",
+      "bodyBytes": 69,
+      "headers": {
+        "content-type": "application/json"
+      }
+    },
+    "outcome": "ok",
+    "assertions": [
+      {
+        "id": "price_matches_challenge",
+        "result": "unknown",
+        "detail": "no payment observed"
+      },
+      {
+        "id": "payto_matches_challenge",
+        "result": "unknown",
+        "detail": "payee not observable on both sides"
+      },
+      {
+        "id": "network_allowed",
+        "result": "unknown",
+        "expected": "eip155:8453",
+        "detail": "no network observed"
+      },
+      {
+        "id": "payto_allowed",
+        "result": "unknown",
+        "detail": "policy.allowedPayTo not set"
+      },
+      {
+        "id": "price_within_policy",
+        "result": "unknown",
+        "expected": "0.05",
+        "detail": "no priceable amount observed"
+      },
+      {
+        "id": "budget_within_cap",
+        "result": "unknown",
+        "observed": "0",
+        "expected": "0.10",
+        "detail": "current call not priceable; cumulative figure is a lower bound"
+      },
+      {
+        "id": "settled",
+        "result": "unknown",
+        "detail": "no payment made"
+      },
+      {
+        "id": "model_matches_request",
+        "result": "unknown",
+        "detail": "not an LLM route, or no model field present"
+      }
+    ],
+    "sessionId": "x402Payment-reconstruction",
+    "settlement": {
+      "success": false,
+      "source": "none"
+    }
+  },
+  "leafHash": "b28b66c8822e8282f0af7a73e787fd4b392ed4e15feff25417782cdc5572f805",
+  "proof": [],
+  "root": "fcfd7eacb4ddd7c7f72b82387ca55090979d7153a8b57ec92523d39b83206022",
+  "attestationId": "61322499-b5cf-460e-a048-52504ccf2a5e",
+  "verifyUrl": "https://rubric-protocol.com/audit/61322499-b5cf-460e-a048-52504ccf2a5e",
+  "verifyApiUrl": "https://rubric-protocol.com/v1/verify/61322499-b5cf-460e-a048-52504ccf2a5e",
+  "envelope": {
+    "schemaVersion": "rubric.x402-attest/v1",
+    "leafType": "DATA_RECORD",
+    "root": "fcfd7eacb4ddd7c7f72b82387ca55090979d7153a8b57ec92523d39b83206022",
+    "leafCount": 1,
+    "firstCallId": "01a040df-01f0-7000-b6ba-8d8118169933",
+    "lastCallId": "01a040df-01f0-7000-b6ba-8d8118169933",
+    "timeRange": {
+      "from": "2026-08-27T01:39:11.984Z",
+      "to": "2026-08-27T01:39:12.158Z"
+    },
+    "subjectId": "keyless-response-capture",
+    "merkle": {
+      "hash": "sha256",
+      "leafPrefix": "0x00",
+      "nodePrefix": "0x01",
+      "oddNode": "promote"
+    },
+    "x402Payment": {
+      "x402Version": 2,
+      "scheme": "exact",
+      "network": "eip155:8453",
+      "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "amountAtomic": "5000",
+      "payer": "0x6A742Aa40c2A3a5ec6ea730c3C47Fcc83C487583"
+    }
+  },
+  "payloadCommitment": "61676f3a19255595fa58cbfda17c764a82f62db2486108e913382342d4a6ba31",
+  "commitmentSalt": "3ae3c7ee8501bd817966c8ac9f182aae9d00f67736b4e972e897ec9005c234a9"
+}

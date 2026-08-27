@@ -1,6 +1,6 @@
 {
   "name": "@tempus1/clawrouter-attest",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "ClawRouter plugin: attest every proxied call, making the router's cost-savings claim independently verifiable.",
   "license": "MIT",
   "type": "module",
@@ -20,7 +20,7 @@
     "build": "tsc -b"
   },
   "dependencies": {
-    "@tempus1/x402-attest": "0.1.3"
+    "@tempus1/x402-attest": "0.1.4"
   },
   "publishConfig": {
     "access": "public"

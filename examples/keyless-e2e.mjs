@@ -141,17 +141,37 @@ const rubricServer = createServer(async (req, res) => {
 
   const { data } = JSON.parse(body);
   const attestationId = randomUUID();
+
+  // This route does NOT commit to what the client sent. It wraps the payload in
+  // a payment block it stamps in server-side — the payer the facilitator
+  // verified, the price it charged, the network it settled on — and commits to
+  // the pair. The client cannot reconstruct any of that, so the member has to
+  // come back with the salt or the commitment opens for nobody. DEVIATIONS §21.
+  const auth = JSON.parse(
+    Buffer.from(req.headers['payment-signature'], 'base64').toString('utf8'),
+  );
+  const x402Payment = {
+    x402Version: 2,
+    scheme: 'exact',
+    network: 'eip155:8453',
+    asset: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+    amountAtomic: '5000',
+    payer: auth.payload?.authorization?.from ?? null,
+  };
+  const committed = { ...(data ?? {}), x402Payment };
+
   // The node keeps a commitment, never the plaintext payload — tiered payloads
   // are encrypted at rest. This is the only handle /v1/verify gives back.
   //
   //   salt       = SHA-256(payloadKey + ':rubric-commit-v1')
   //   commitment = SHA-256(salt + RFC8785(payload))
   //
-  // The salt is one-way in the key, so a receipt can publish the salt and stay
-  // fully verifiable while the decryption key stays sealed.
+  // The salt is one-way in the key, so the route can publish the salt and keep
+  // the AES key sealed. It publishes the salt and never the key: paying $0.005
+  // for an attestation does not buy the credential that decrypts the payload.
   const PAYLOAD_KEY = 'a'.repeat(64);
   const salt = createHash('sha256').update(PAYLOAD_KEY + ':rubric-commit-v1').digest('hex');
-  const commitment = createHash('sha256').update(salt + jcs(data)).digest('hex');
+  const commitment = createHash('sha256').update(salt + jcs(committed)).digest('hex');
   anchored.set(attestationId, { commitment });
   return json(200, {
     success: true,
@@ -159,8 +179,10 @@ const rubricServer = createServer(async (req, res) => {
     settled: true,
     settlement: { txHash: '0x' + 'cd'.repeat(32), network: 'base' },
     attestationId,
-    payloadKey: PAYLOAD_KEY,
+    status: 'buffered',
     payloadCommitment: commitment,
+    commitmentSalt: salt,
+    x402Payment,
     algorithm: 'ML-DSA-65',
     topic: '0.0.10416909',
     verifyUrl: `http://127.0.0.1:${rubricServer.address().port}/v1/verify/${attestationId}`,

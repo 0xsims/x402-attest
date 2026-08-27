@@ -49,6 +49,53 @@ const RUBRIC_PAYEE = '0x9999999999999999999999999999999999999999';
 /** Fixed so tests can derive the same opening salt the server would. */
 export const PAYLOAD_KEY = 'a'.repeat(64);
 
+/**
+ * Recover the payer from a payment header, the way the live route does.
+ *
+ * The server takes it from the verified authorization (`auth.from`) and falls
+ * back to `null`. Null matters: it is a value the commitment covers, so a
+ * receipt anchored by an unidentified payer still has to canonicalise it.
+ */
+function payerFrom(header: string | undefined): string | null {
+  if (!header) return null;
+  try {
+    const decoded = JSON.parse(Buffer.from(header, 'base64').toString('utf8')) as {
+      payload?: { authorization?: { from?: string } };
+    };
+    return decoded.payload?.authorization?.from ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The block the keyless route injects into the payload before committing to it.
+ *
+ * Field-for-field from a live response — see
+ * `test/fixtures/live-mainnet/x402-anchor-response.json`, and DEVIATIONS §21 for
+ * why it exists. `payer` and `amountAtomic` come from the request this mock
+ * actually received, exactly as the server takes them from the payment it
+ * actually verified.
+ *
+ * Modelling the *injection*, not just the returned field, is the point. A mock
+ * that returned `x402Payment` while still committing to the bare submitted
+ * payload would let a client that never folds it in pass every test — the same
+ * shape of failure as §4 and §20, for a third time.
+ */
+export function x402PaymentMember(
+  amountAtomic: string,
+  payer: string | null,
+): Record<string, unknown> {
+  return {
+    x402Version: 2,
+    scheme: 'exact',
+    network: 'eip155:8453',
+    asset: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+    amountAtomic,
+    payer,
+  };
+}
+
 /** What the node retains: a commitment, never the plaintext payload. */
 export type StoredAttestation = {
   commitment: string;
@@ -153,11 +200,12 @@ export async function startMockRubric(options: MockRubricOptions = {}): Promise<
         return json(503, { error: 'temporarily unavailable' });
       }
 
+      const payment =
+        (req.headers['payment-signature'] as string | undefined) ??
+        (req.headers['x-payment'] as string | undefined);
+
       // Keyless path: demand payment before attesting.
       if (path === '/v1/x402/tiered-attest') {
-        const payment =
-          (req.headers['payment-signature'] as string | undefined) ??
-          (req.headers['x-payment'] as string | undefined);
         if (!payment) {
           return json(402, {
             x402Version: 1,
@@ -189,21 +237,56 @@ export async function startMockRubric(options: MockRubricOptions = {}): Promise<
 
       const attestationId = randomUUID();
 
+      // What the node actually commits to, which on the keyless route is NOT what
+      // the client sent. That handler wraps the submission before minting:
+      //
+      //   data: { ...(req.body.data || {}), x402Payment: {...} }
+      //
+      // so `payer`, `amountAtomic` and the network are inside the preimage even
+      // though the client never chose them and cannot reconstruct them. The
+      // `|| {}` is copied too: a keyless post with no `data` commits to the
+      // payment block alone.
+      const x402Payment =
+        path === '/v1/x402/tiered-attest'
+          ? x402PaymentMember(options.attestPrice ?? '5000', payerFrom(payment))
+          : undefined;
+      const committed = x402Payment
+        ? { ...((parsed.data as Record<string, unknown> | undefined) ?? {}), x402Payment }
+        : parsed.data;
+
       // Rubric's actual commitment scheme, confirmed against the server source:
       //   salt       = SHA-256(payloadKeyHex + ':rubric-commit-v1')
       //   commitment = SHA-256(salt + RFC8785(payload))
       // The salt is one-way in the key, which is why a receipt can publish it.
-      const canonical = jcs(parsed.data);
+      const canonical = jcs(committed);
       const salt = createHash('sha256')
         .update(PAYLOAD_KEY + ':rubric-commit-v1')
         .digest('hex');
       const commitment = createHash('sha256').update(salt + canonical).digest('hex');
       const payloadHash = createHash('sha256').update(canonical).digest('hex');
+      // `submitted` stays what the client sent — it is what the no-plaintext tests
+      // assert against. The commitment above covers the wrapped form.
       stored.set(attestationId, { commitment, payloadHash, submitted: parsed.data });
 
       const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 
       if (path === '/v1/x402/tiered-attest') {
+        // Members and their order copied from a live 200, captured by
+        // `examples/capture-keyless-response.mjs` and kept at
+        // `test/fixtures/live-mainnet/x402-anchor-response.json`. Note what is
+        // NOT here, because each absence has cost something:
+        //
+        //   payloadKey  — a decryption credential; paying for an attestation
+        //                 does not buy it, and the live route never sends it.
+        //                 Returning it here anyway is how this mock hid the fact
+        //                 that keyless receipts were entirely unbound (§20).
+        //   payloadHash — the keyed route returns one, this route does not. It
+        //                 was in this mock and in no live response.
+        //
+        // The live body also carries a `vsr` member: a VSR-0.4 delivery receipt
+        // with an ML-DSA-65 signature, ~8KB. Omitted because nothing in this
+        // library reads it, and omitting is the safe direction — a mock that
+        // returns LESS than the server cannot manufacture a passing test.
         return json(
           200,
           {
@@ -212,20 +295,20 @@ export async function startMockRubric(options: MockRubricOptions = {}): Promise<
             settled: true,
             settlement: { txHash: '0x' + 'ab'.repeat(32), network: 'base' },
             attestationId,
-            // NO payloadKey on this route, matching the live server: the key is
-            // a decryption credential and paying for an attestation does not buy
-            // it. The already-derived opening salt is returned instead, which is
-            // one-way in the key and is what a verifier actually needs.
-            //
-            // Returning the key here anyway is precisely how this mock hid the
-            // fact that the real keyless route returned neither, and that every
-            // keyless receipt was therefore unbound. See DEVIATIONS §20.
-            commitmentSalt: salt,
+            status: 'buffered',
             payloadCommitment: commitment,
-            payloadHash,
+            commitmentSalt: salt,
+            // The member the commitment above covers. Without it back, a client
+            // holding the salt still canonicalises the wrong bytes.
+            x402Payment,
             algorithm: 'ML-DSA-65',
             topic: '0.0.10416909',
             verifyUrl: `${base}/v1/verify/${attestationId}`,
+            statement: {
+              note: 'Monthly signed spend statement for this agentId: $0.50 via x402',
+              resource: 'https://rubric-protocol.com/v1/x402/statement',
+              renderer: 'https://rubric-protocol.com/statement.html',
+            },
           },
           {
             'payment-response': Buffer.from(

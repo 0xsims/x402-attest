@@ -166,6 +166,31 @@ export type BatchEnvelope = {
   };
 };
 
+/**
+ * The payment block Rubric's keyless route injects into the payload before it
+ * commits to it.
+ *
+ * Observed on the live node (DEVIATIONS §21):
+ *
+ *   { x402Version, scheme, network, asset, amountAtomic, payer }
+ *
+ * Deliberately not narrowed to that shape. This is committed bytes: it is
+ * carried verbatim and never interpreted, so a field the server adds later still
+ * canonicalises to what it committed to instead of being silently dropped.
+ */
+export type X402PaymentMember = Record<string, unknown>;
+
+/**
+ * The envelope as committed, which is not always the envelope as submitted.
+ *
+ * `BatchEnvelope` is what goes over the wire. Rubric's keyless route commits to
+ * that plus an `x402Payment` member it injects server-side, so a receipt has to
+ * record the extended form or it cannot open its own commitment. `root` is
+ * identical in both — the injected member sits alongside it and never touches
+ * it, which is what keeps `envelope.root` a valid check on the proof chain.
+ */
+export type RecordedEnvelope = BatchEnvelope & { x402Payment?: X402PaymentMember };
+
 export type Receipt = {
   callRecord: CallRecord;
   leafHash: string;
@@ -184,8 +209,12 @@ export type Receipt = {
    * `verifyReceipt` derives it from `verifyUrl`'s origin in that case.
    */
   verifyApiUrl?: string;
-  /** The batch payload this leaf's root was submitted in. */
-  envelope: BatchEnvelope;
+  /**
+   * The batch payload this leaf's root was submitted in, as the anchor
+   * committed to it — including anything the server injected. See
+   * `RecordedEnvelope`; this is the preimage `commitmentSalt` opens.
+   */
+  envelope: RecordedEnvelope;
   /**
    * Commitment Rubric issued for `envelope` at submission, echoed by the public
    * verify endpoint. This is what binds a receipt to the anchored attestation.

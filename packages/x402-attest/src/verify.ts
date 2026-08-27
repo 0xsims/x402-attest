@@ -63,7 +63,15 @@ export type VerifyResult = {
     proof: 'pass' | 'fail' | 'skipped';
     /** Does the proven root match the root named in the batch envelope? */
     envelopeRoot: 'pass' | 'fail' | 'skipped';
-    /** Does the node hold the commitment this receipt recorded? */
+    /**
+     * Does the commitment hold?
+     *
+     * Online that is the full question: does the node hold the commitment this
+     * receipt recorded? Offline it is the local half of the same link — does the
+     * envelope open the commitment the receipt records — which is all of it that
+     * can be decided without a network, and is a real answer rather than an
+     * absent one.
+     */
     commitment: 'pass' | 'fail' | 'skipped' | 'unverifiable';
     /** `pending` — the node holds it, the ledger anchor has not landed yet. */
     anchored: 'pass' | 'fail' | 'pending' | 'skipped';
@@ -345,11 +353,49 @@ export async function verifyReceipt(
     };
   }
 
+  // Whether the envelope was proven to open the commitment the receipt records.
+  //
+  // This is decidable with no network: recompute SHA-256(salt + jcs(envelope))
+  // and compare it to the digest the receipt carries. A mismatch already returned
+  // above as tampering; a match is the other half of that same result and is
+  // reported as such rather than as an absent check. It is the strongest claim
+  // available offline — it does not say the node holds that commitment, only
+  // that the receipt's envelope and its recorded commitment agree.
+  //
+  // `binding: 'recorded'` deliberately does NOT qualify. With no salt there is
+  // nothing to recompute, so the only local comparison is the receipt's
+  // commitment against itself — which proves nothing while reading like a
+  // stronger result. That one stays unchecked until the node is asked.
+  const opensLocally =
+    binding === 'recomputed' &&
+    !!receipt.payloadCommitment &&
+    expectedCommitment === receipt.payloadCommitment;
+
   if (options.offline) {
+    // Three outcomes, and the difference between the last two is the difference
+    // between "we did not ask" and "there was nothing to ask about".
+    let reason = 'hash and proof verified; anchor check skipped (offline)';
+    if (opensLocally) {
+      checks.commitment = 'pass';
+      reason =
+        'hash and proof verified, and the envelope opens the commitment the receipt ' +
+        'records; anchor check skipped (offline), so whether the node holds that ' +
+        'commitment is unchecked';
+    } else if (binding === 'none') {
+      // Not a check we declined to run — one there is no material for. The same
+      // receipt reports `unverifiable` online, and being offline does not make it
+      // any more bindable: `skipped` would imply a network call was all it needed.
+      checks.commitment = 'unverifiable';
+      reason =
+        'hash and proof verified; anchor check skipped (offline), and the receipt ' +
+        'carries nothing that could bind the payload to an attestation';
+    }
+    // Everything else stays `skipped`: a commitment is present and comparable,
+    // it just needs the node, which is precisely what offline declined to do.
     return {
       ok: true,
       code: VERIFY_EXIT.VALID,
-      reason: 'hash and proof verified; anchor check skipped (offline)',
+      reason,
       checks,
       binding,
       computed: { leafHash: computedLeaf, root: computedRoot, commitment: expectedCommitment },

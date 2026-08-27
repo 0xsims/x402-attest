@@ -279,6 +279,60 @@ describe('receipt verification', () => {
     expect(JSON.stringify(receipt)).not.toContain('a'.repeat(64));
   });
 
+  it('passes the commitment offline when the envelope opens it', async () => {
+    const [receipt] = await makeReceipt(1);
+    const r = await verifyReceipt(receipt!, { offline: true });
+
+    // Recomputing SHA-256(salt + jcs(envelope)) and finding the digest the
+    // receipt records needs no network, and it is the same computation that
+    // reports `fail` on a mismatch. Reporting only the failure and calling the
+    // success `skipped` understates what was actually checked.
+    expect(r.checks.commitment).toBe('pass');
+    expect(r.binding).toBe('recomputed');
+    expect(r.computed.commitment).toBe(receipt!.payloadCommitment);
+    expect(r.ok).toBe(true);
+
+    // ...and it does not overclaim: the node was never asked.
+    expect(r.checks.anchored).toBe('skipped');
+    expect(r.remote).toBeUndefined();
+    expect(r.reason).toMatch(/whether the node holds that commitment is unchecked/);
+  });
+
+  it('tells a check it declined to run from one it had no material for', async () => {
+    const [receipt] = await makeReceipt(1);
+
+    // No salt: `binding: 'recorded'`. The only comparison available offline is
+    // the receipt's commitment against itself, which proves nothing while
+    // reading like a stronger result — so it stays unchecked until the node is
+    // asked. This is the §20 argument, applied one link along. `skipped`, because
+    // the comparison exists and one network call would settle it.
+    const { commitmentSalt: _s, ...noSalt } = receipt!;
+    const recorded = await verifyReceipt(noSalt as Receipt, { offline: true });
+    expect(recorded.binding).toBe('recorded');
+    expect(recorded.checks.commitment).toBe('skipped');
+
+    // A salt but no recorded commitment: something was computed, and the node
+    // holds the digest it would be compared against. Also `skipped`.
+    const { payloadCommitment: _c, ...noCommitment } = receipt!;
+    const noTarget = await verifyReceipt(noCommitment as Receipt, { offline: true });
+    expect(noTarget.binding).toBe('recomputed');
+    expect(noTarget.checks.commitment).toBe('skipped');
+
+    // Neither. Nothing on this receipt could bind the payload to an attestation,
+    // and no network call changes that — so `unverifiable`, exactly as the online
+    // path reports the same receipt. Calling it `skipped` would imply the check
+    // was merely deferred.
+    const { commitmentSalt: _s2, payloadCommitment: _c2, ...bare } = receipt!;
+    const none = await verifyReceipt(bare as Receipt, { offline: true });
+    expect(none.binding).toBe('none');
+    expect(none.checks.commitment).toBe('unverifiable');
+    expect(none.reason).toMatch(/nothing that could bind the payload/);
+
+    // Same receipt, same word, with the node in the loop.
+    const online = await verifyReceipt(bare as Receipt, { fetchImpl: fetch });
+    expect(online.checks.commitment).toBe('unverifiable');
+  });
+
   it('reports a batch that has not reached the ledger yet as pending (exit 5)', async () => {
     rubric.options.verifyStatus = 'signed-pending-flush';
     const [receipt] = await makeReceipt(1);

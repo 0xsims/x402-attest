@@ -118,17 +118,22 @@ function render(io: CliIo, r: VerifyResult, label: string): void {
   io.out(`  leaf hash      ${symbol(r.checks.leafHash)}  ${r.computed.leafHash}`);
   io.out(`  proof          ${symbol(r.checks.proof)}${r.computed.root ? '    ' + r.computed.root : ''}`);
   io.out(`  envelope root  ${symbol(r.checks.envelopeRoot)}`);
-  // Only annotate with the binding when a comparison actually happened. Offline,
-  // the commitment is recomputed but never compared, and "skipped (recomputed)"
-  // reads as a contradiction.
-  const bindingNote =
-    r.checks.commitment === 'skipped'
-      ? r.binding === 'recomputed'
-        ? '  (recomputed locally, not compared — offline)'
-        : ''
-      : r.binding && r.binding !== 'none'
-        ? `  (${r.binding})`
-        : '';
+  // Say exactly which comparison happened. "skipped (recomputed)" reads as a
+  // contradiction, and an offline pass must not read like the online one.
+  const offline = r.checks.anchored === 'skipped';
+  let bindingNote = '';
+  if (r.checks.commitment === 'skipped') {
+    // Recomputed, but with nothing available to compare it against.
+    if (r.binding === 'recomputed') bindingNote = '  (recomputed locally, not compared — offline)';
+  } else if (r.binding && r.binding !== 'none') {
+    // An offline pass is a real result — the envelope opens the digest the
+    // receipt records — but the node was never asked whether it holds that
+    // digest. An offline FAIL needs no such caveat: it is decisive on its own.
+    bindingNote =
+      offline && r.checks.commitment === 'pass'
+        ? '  (recomputed locally; the node was not asked)'
+        : `  (${r.binding})`;
+  }
   io.out(`  commitment     ${symbol(r.checks.commitment)}${bindingNote}`);
   io.out(`  anchored       ${symbol(r.checks.anchored)}${r.remote?.status ? '  (' + r.remote.status + ')' : ''}`);
   if (r.remote?.mirrorNodeUrl) io.out(`  independent    ${r.remote.mirrorNodeUrl}`);

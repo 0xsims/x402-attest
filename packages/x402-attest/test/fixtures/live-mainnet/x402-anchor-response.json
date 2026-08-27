@@ -1,0 +1,114 @@
+{
+  "request": {
+    "sourceId": "keyless-response-capture",
+    "data": {
+      "schemaVersion": "rubric.x402-attest/v1",
+      "leafType": "DATA_RECORD",
+      "root": "fcfd7eacb4ddd7c7f72b82387ca55090979d7153a8b57ec92523d39b83206022",
+      "leafCount": 1,
+      "firstCallId": "01a040df-01f0-7000-b6ba-8d8118169933",
+      "lastCallId": "01a040df-01f0-7000-b6ba-8d8118169933",
+      "timeRange": {
+        "from": "2026-08-27T01:39:11.984Z",
+        "to": "2026-08-27T01:39:12.158Z"
+      },
+      "subjectId": "keyless-response-capture",
+      "merkle": {
+        "hash": "sha256",
+        "leafPrefix": "0x00",
+        "nodePrefix": "0x01",
+        "oddNode": "promote"
+      }
+    }
+  },
+  "status": 200,
+  "body": {
+    "success": true,
+    "paid": true,
+    "settled": true,
+    "settlement": {
+      "txHash": "0x41b4d9e6ee4f5b9033efbe013491d0e5873dcd0f4a73c46a63862d9fcd61a606",
+      "network": "base"
+    },
+    "attestationId": "61322499-b5cf-460e-a048-52504ccf2a5e",
+    "status": "buffered",
+    "payloadCommitment": "61676f3a19255595fa58cbfda17c764a82f62db2486108e913382342d4a6ba31",
+    "commitmentSalt": "3ae3c7ee8501bd817966c8ac9f182aae9d00f67736b4e972e897ec9005c234a9",
+    "x402Payment": {
+      "x402Version": 2,
+      "scheme": "exact",
+      "network": "eip155:8453",
+      "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "amountAtomic": "5000",
+      "payer": "0x6A742Aa40c2A3a5ec6ea730c3C47Fcc83C487583"
+    },
+    "algorithm": "ML-DSA-65",
+    "topic": "0.0.10416909",
+    "verifyUrl": "https://rubric-protocol.com/audit/61322499-b5cf-460e-a048-52504ccf2a5e",
+    "statement": {
+      "note": "Monthly signed spend statement for this agentId: $0.50 via x402",
+      "resource": "https://rubric-protocol.com/v1/x402/statement",
+      "renderer": "https://rubric-protocol.com/statement.html"
+    },
+    "vsr": {
+      "receipt": {
+        "vsrVersion": "0.4-draft",
+        "receiptId": "a12c4967-873b-4f0e-b8bb-11f97be103ba",
+        "hashProfile": "vsr/v0.4/sha3-256",
+        "payment": {
+          "rail": "x402",
+          "railVersion": "2",
+          "network": "eip155:8453",
+          "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          "amount": "5000",
+          "amountExponent": 6,
+          "payer": "0x6A742Aa40c2A3a5ec6ea730c3C47Fcc83C487583",
+          "payee": "0xaB6731A0BcDf511c2842C768a03448075aB654ca",
+          "reference": {
+            "type": "eip3009-authorization",
+            "value": "0x41b4d9e6ee4f5b9033efbe013491d0e5873dcd0f4a73c46a63862d9fcd61a606"
+          },
+          "settledAt": "2026-08-27T01:39:13.585Z"
+        },
+        "delivery": {
+          "resource": "https://rubric-protocol.com/v1/x402/tiered-attest",
+          "method": "POST",
+          "requestHash": "sha3-256:5293f1a54a14078aa6a8a7f3bdb2bb2e629fd9e5741c5757ca6a5f4a7d237f30",
+          "responseHash": "sha3-256:6b55db3f2e254aa4ad6f4a0d5bfe1940fc670ecf1e6bd17d0a2c8c93067f3173",
+          "responseBytes": 934,
+          "status": 200,
+          "servedAt": "2026-08-27T01:39:13.586Z",
+          "commitmentScheme": "direct",
+          "excludedMembers": [
+            "vsr"
+          ]
+        },
+        "anchor": {
+          "type": "hcs",
+          "network": "hedera-mainnet",
+          "topicId": "0.0.10416909",
+          "payloadHash": "sha3-256:c6935718966c159f735e62c6e0a9497ddc665011b46b805725e866dee57634e2",
+          "mirrorNode": "https://mainnet-public.mirrornode.hedera.com",
+          "status": "pending",
+          "discovery": "This receipt commits to payloadHash; the anchor references the hash, not the reverse. Resolve via GET https://rubric-protocol.com/verify/v1/by-payload-hash/c6935718966c159f735e62c6e0a9497ddc665011b46b805725e866dee57634e2 once the next tier-1 flush lands (typically under a minute). Until then the receipt is signed but unanchored."
+        }
+      },
+      "signature": {
+        "algorithm": "ML-DSA-65",
+        "standard": "FIPS-204",
+        "scheme": "single",
+        "signedPayloadHash": "sha3-256:c6935718966c159f735e62c6e0a9497ddc665011b46b805725e866dee57634e2",
+        "canonicalization": "attestor JCS over the receipt object, as returned by the signer",
+        "signatures": [
+          {
+            "signer": "afb8db38-12f7-4dfa-afb4-4072cdaf29c0",
+            "publicKeyId": "1ffb9f4a-3ee9-4885-873e-3ba062149eaf",
+            "publicKey": "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",
+            "value": "61ed34c629bd01b069f6ad071780fc593728b2a08bd2788b17d0a93894a811220fa6ff5d77644dbaae0f787e3e9b3caf07e4eadcf870733a96667684966d76723a6f2b262c31f2c659fe7f8755039767d68a649e997a608e84a23842614d2d0081c9a2cb46208c3405a3ee9daa2442e717ee5e867ca091ff2533d2698ad6d58073d0d164cc6c5592e37ec9e454d9124a576af666077b5aaf1b414ce177574f3f7f41a2ab68393da59e55ea5ea12b33a6184e8c3935d50ca7c77233542e8955ba52a2d0eab9bda0d089023fb9362b4f92f1eab4fd1e5ee301dfc0936aa615c24900811e0de1715bd1f9c97ff0940473b8090d74b737f18ded5a69e821dc925b8c23a8c72fc901c57b9095b6fed3e83a266950a23c389cceaa90a8d340c35f501ee7b22b247b1e5e0d0c6f585ac36135487f4fe4226d25528123f69a90883bb6f2dbd7c8717d0f8aa1f92059dcbf435a7730f6be87928c4b4d2d5b51d4322ff46e0d61b3315a97ffe141a26126dfdd53a3481816fffe1f797b878273658533fe2c253237418721be6542bde567498fa98fd23e678dcd7ba6c6fe4982669eb622dc8ddeb89874117b31ce50d51705d6352bb0733d73314255f0af58c91be0c95f819b71166b1a2690f8a4233b334f5aa19cb74d3c1443a6186201482fcc86f6abf5fc5843a32a86ddbfe27f94c6cd34dd2a82a32be5fbf607145c354f23fb4786357c739af4eca2b606702e484d037368e0e7e2a2d2e1d8c702f713d4a5cb6e26cb6b8729fd47130b53fad4a7a93c1024cbeb165b41c13afae23d62a7c6d03c5634c319e6ca0664651f34c06f652d6ed34ef3ad3dec68ec6f0d24144b3d947997b7fa98ce7357c049d64f4ae2ee39fc23fb1d4b07c5dbb3bd7f4b2bb93f0176912c478a2486a3e346cadff2dc77677d85a32eea4d9e679832c18c7234dae0ac3f2496ec47bbd10ea262ea248dc7927f058a4ade89fab5e098f02d56ee8de617f2334eed3bf4e7547e4beff081e35d963058b509db9817fef7d5b5371753182cc0750882ab4272f151bf16c083bdbadc32c769c10423ad5f5e2371960f487982f3e0150c048d816b8ee6a4e7e2fb42dcb56876bb13121171ef4684ca4a6fcb825b1e5257a96fe9ce3b7472c9ebc2d3200c583652c3fd0040b9c2e2e42a55970db61a155530910eccdd390288663706ad8c2ec79f9788f62260a7ffb11ff07a03b9265816f9bbfb748fd2129d7d4c400a679a5ed201577a3cb89001ae0de3892310e795093e94537194bd4e53d6b6bb262c7f46af774df2144a63d1cbe261df6aa206e8797f705ea1109bf91145719b83311f7f56cb180baf99abe91f22cafc5831d5538a4e24d4e319555a5be8acde48b8d6a2a4890da04afa24540d2e0c308e972781252f065af743de425c651cb2c395ed71ed1d75b7270fcf37d6333fdc7bf92cc529a3ae693cbcd5c7493b594df92080517ffab843a192701e07459754551ab37d5ebe927bb5b4f43872fe727e6cc0c27d1790ed91f874aa06b542cae42be080d08f6b9bb61ee675b57899496eab4a1ee99e133ac2ade471a312fb2d88a4360761aa263b884d6f88c03ac9c91a447f5e497157d0146b6bac45599d504d7f9a07cc457f70ca2f8eeb3c390ba176bf46da7c22bc22f08d6b7af49342c3a4f5ca66d75660abc63ffa05843e2fa55ac0afdf000b4937900bb6d8e5cc2fd43f0a3ea8255202b31468c895a8cd570bf2380d837453d7450bb4f53bf392c38b2f0b1da0ccac915b1a2e0c151f08a8ab3009dfdd1a345488d43c07ffcebabf584f5306aa678b0155f563664e481e5c3b9059add0be19ff681d95150286180d48241c8b0955d63d00177e40e92fb2d266cd35a155ac62402d5d67ce9d06e87e192fc59a6373a8783d70385fde458d730d2f9b962fd77ede1a671e36c345213a19d5e9ad4e04e4ebd2f198ec4cd6ca4fc7214b941bfc32dd38b08e331173982207f77df72d156cc572d87afcc5e2e9fa6f9c054b9786c448e2c3788cffc4c54650ce866598b144d1e426bdfe2fcc0b8c7020b293b25c279f5f9491c5e510e57d034610f764d774cd4df70db7de016ac769aa61656ec3f646791bdacf6997e1397e489a8b2275a981b06ea8f94245ccd475b2335dbf3467068a8de8deaacaceb9f3775c9705719e14fe8d9b05db158aec0a453855835cc254a27e6fd28b5e35a7192f3b80ef1be7644e88ef7e1016f5ac0465d92223bbd7c3f87334e5134f5ae1db53261f1c132d68174d528067a9e06d1dac16202df220abd8af9b07ef9bf07c0d8bda5975d1da5a103d6f30b4ff52aa7bbf1a0783a34d6f9172c9b0f166504ad1001c0e44a001b9745aec20a8904feec151815d4cb0448d9ebf4a6e13a1ce525ea5da92969a8c358ca2609ab05b27177175ca2a7a0e7f6f112c1b3fbf85877beffdafff5645d9b8d1d4fb2dcc915088599adce9726b742b1b95d69580e5133189004c247584cdda32d28a9858902e654e9def95d63a64e2d85a26e63a195a0d0686d217aed0aeec310b5585e70f7c05894929b5f71e40fd054d7e17a96e02c4546ced66fdce25ee4a6fb3167ad91b7afc5eb2ddeb62a3858303d868b5f736475ee4c3c5d28b55609083d4686c4843b934b5e8ad55965732d39a218f1fa4e5efb37236531e82de6b4a438c7b8355ec55e79a5a52564daeb497bf67cec2969700c5db8586f289cdd9bc85b139f8cdbb2bbba4bf59bf72992a233b3da61c65f3bacc114d7c2d20dd1d5826329fc91e9681a18cfdfa1faad4d7121b50dfd7006f3cc7e6d804da187bc8004204bb353b856880325539a4833bc478ef636b6b763c8940d42b2301aad52e2448f9920ff9ef46fc2d948404a00ad8a2d68733b4defe1fb2b1d5d08a8ad7367036f732542137c29c36b62e3aab847aa02b9c2fc6c78f89b613aebf760c0b038c2e895ce3814cfe6203965b81886ffa18da3e3cff3be617b2688a0a2610007684bd834b58bc5c96eb4e5d8ed03d931cdba27a716dca907454933c838f9b6ead2e0c65814eb19c6eef8c0645c4eaf12d77e2cb5a45c792beccb0658ed513994309a88998692de7bf449ad4a428a23f59ff3befb671211292e9e379678489ffdaf2bf41f193cf7b47530430d54ac1d3b97010ec679dd0dcfe12904fe85a4548fef9be0442936c583312a311f507f6adf01318562a2edaab24bf56287a02548c4ca246c9c4c15e9177b3c65f99ab32b10215bd0849eb78c9ec5e4170d233c50a384d6357edf5b81a0bdc86a41b786f26c3122b4c001db82616bb7779b9ccd4200dcf2eaa8ffbdcccbab39a0d90befc718329c769a916c5e25f223a2346e98a40650d2148cc8ee261100b66ae833855f9686fc58629013c2c11c8cdd45149e2de10138c18ab92d8f4d63c411a911d2d74c46f4ebe3e511caa36e885565bffc8918086c2bfd0b43f409dc7d131b2addb62996d9528a5527a46a86383867ee58248864346fff89c2bba884eef086dd0fc1b712cfda43f242090b4acf8ad091c5a9fe33665926195aa01434b4925890a5a4944aacd3e3986134a970742d5cd21441a9a02e7151814dc43c6ceb14408ed23c50a2adfa100a459043b7fbf7276ee4f67da1da420c06fcbcd4228a130a22ffc05b7c5d255b25d656f5a8b2eba13abbf172f3e08f6e0f899772cc01ae5028287a025e12b936c72ebc8ee3c350ac3284172c39738b0075cfba727e705cd731a10101841bf62009335e1102474a430b0cef1d4fed5ef56389ac1c36d333d944037ebb82d2de9406388580dc390f131e3e1217f1cd3bd02c49ff260be31312e1dd23055e858da488d216458eaca81e8294ffe00bb731287fcb34f41ee2e782aeed634c634967e3a6394a5d1d2ae316c62ce628f88bcd6d9980767932aa2a9e671885f07a078bc500ae3f2f6f9048b961c8dd1fc9544be9e0c6b69150b8b841ea041c879da2e3e4cea76fbb0b97d71244c33f3715d380f85b32878ac1d6ab9d6ed24052c843b2207bfef7e237ec1146e6b886d3123134d2b6dbbcb33d5f4c6f614f5105b5ee3abd6b8687cd64a87924c327df3518c63473aa922f787cdc95b8c4e29dfa26e73aaa284747820e13d35f623bd6f3fd9b6dc6f54261f3319d72dcfdefb6baccc54cdf2d8aa6e2aeee768c9f62c01135140471bd0c9cef28d5748963c0e06ef63b79fb9da606663a9496dd028129748fdfc0c9ce257d705258003df6c6e5029a5db21a3c1fbedc0bc30ff80a1542bc46db248a2985223612a9aa06cc0e002aafd4927000b39f0a7502cc7624dbea06275f38ad7f9bf6717811c03a56e4ea985d376f0d00485b7fb06bfd0a5c60aecc12e1c3bb0daa3848e0c6da70064ba59a23f4475ea80c3bd546316a0ee70277c1d9f4bcfebf364d8b14aa33b1886a9a7ffc21a30f0b7b0d3e456a3e6530c744eede8c07f9e3f634df4568be0387e51f799cc2a224f122647b4f8840b3a14925d15408b4d8191900d19fb2decf50183e5bccd9122f9b16bee1eceb86816b3c23c95c970829f3cb032ac7062c8d437cb2fd669d903af69725e1b55973915fb5e905abeaaa6dbb807c8a9b478fb8e1e0d1e86bcbec4d3eaf93b45486981f10c1b2b405e75d4f01a43495c5f6685c0f63b6d9194cb13256abecbcdeefd00000000000000000000090f1720252d"
+          }
+        ]
+      },
+      "verify": "responseHash = sha3-256(0x03 || JCS(this response object with the vsr member removed)). requestHash = sha3-256(0x02 || JCS(request body), or 0x02 alone if no body). Spec: https://rubric-protocol.com/specs/vsr-v0.4.md"
+    }
+  }
+}
